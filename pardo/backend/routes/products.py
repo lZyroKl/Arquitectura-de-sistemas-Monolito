@@ -1,0 +1,34 @@
+from flask import Blueprint, request, jsonify
+from models.product import get_all_products, get_product_by_id, get_brands, get_categories
+
+products_bp = Blueprint("products", __name__)
+
+
+@products_bp.route("/api/products", methods=["GET"])
+def list_products():
+    brand = request.args.get("brand")
+    category = request.args.get("category")
+    min_price = request.args.get("min_price")
+    max_price = request.args.get("max_price")
+    search = request.args.get("search")
+
+    products = get_all_products(brand, category, min_price, max_price, search)
+    return jsonify(products)
+
+
+@products_bp.route("/api/products/<int:product_id>", methods=["GET"])
+def get_product(product_id):
+    product = get_product_by_id(product_id)
+    if product:
+        return jsonify(product)
+    return jsonify({"error": "Producto no encontrado"}), 404
+
+
+@products_bp.route("/api/products/brands", methods=["GET"])
+def list_brands():
+    return jsonify(get_brands())
+
+
+@products_bp.route("/api/products/categories", methods=["GET"])
+def list_categories():
+    return jsonify(get_categories())
