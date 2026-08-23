@@ -1,4 +1,5 @@
 import "./style.css";
+// v1.1 - Auth & Account update
 import { route, startRouter, navigate } from "./router.js";
 import { renderNavbar, initNavbar } from "./components/navbar.js";
 import { renderFooter } from "./components/footer.js";
@@ -8,6 +9,7 @@ import { renderCatalog } from "./pages/catalog.js";
 import { renderProduct } from "./pages/product.js";
 import { renderLogin } from "./pages/login.js";
 import { renderCheckout } from "./pages/checkout.js";
+import { renderAccount } from "./pages/account.js";
 import { api } from "./api.js";
 import { initTheme } from "./theme.js";
 
@@ -60,6 +62,7 @@ async function init() {
     route("/catalog", renderCatalog);
     route("/product/:id", renderProduct);
     route("/login", renderLogin);
+    route("/account", renderAccount);
     route("/checkout", renderCheckout);
 
     const app = document.getElementById("app");

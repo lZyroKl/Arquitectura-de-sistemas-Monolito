@@ -27,41 +27,44 @@ export async function renderProduct(container, params) {
                     <div class="container">
                         <button class="btn btn-secondary btn-sm" id="back-btn" style="margin-bottom:24px;">← Volver</button>
                         <div class="product-detail-grid">
-                            <div class="product-detail-image glass-card" style="padding:0;overflow:hidden; display:flex; align-items:center; justify-content:center; background: #fff;">
-                                <img src="${activeProduct.image_url}" alt="${activeProduct.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 600%22><rect fill=%22%2318182a%22 width=%22600%22 height=%22600%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%234a4a6a%22 font-size=%2260%22 text-anchor=%22middle%22 dy=%22.3em%22>👟</text></svg>'" style="width:100%; height:auto; mix-blend-mode: multiply;" />
+                            <div class="product-detail-image glass-card" style="padding:16px;overflow:hidden; display:flex; align-items:center; justify-content:center; background: #ffffff;">
+                                <img src="${activeProduct.image_url}" alt="${activeProduct.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 600%22><rect fill=%22%2318182a%22 width=%22600%22 height=%22600%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%234a4a6a%22 font-size=%2260%22 text-anchor=%22middle%22 dy=%22.3em%22>👟</text></svg>'" style="width:100%; height:100%; object-fit:contain;" />
                             </div>
                             <div class="product-detail-info">
                                 <div class="product-detail-brand">${activeProduct.brand}</div>
                                 <h1 class="product-detail-name">${activeProduct.name}</h1>
                                 
                                 <div class="product-detail-price">${formatPrice(activeProduct.price)}</div>
-                                ${activeProduct.price_usd ? `<div class="product-detail-price-usd">USD $${activeProduct.price_usd}</div>` : ""}
+                                ${activeProduct.price_usd ? `<div class="product-detail-price-usd" style="color:var(--text-muted);font-size:0.95rem;margin-top:-10px;margin-bottom:16px;">USD $${activeProduct.price_usd}</div>` : ""}
                                 
                                 ${variants.length > 1 ? `
-                                    <div class="product-detail-section-title" style="margin-top:20px;">Colorway: <span style="font-weight:400; color:var(--text-secondary);">${activeProduct.colorway}</span></div>
-                                    <div class="colorway-selector" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+                                    <div class="product-detail-section-title" style="margin-top:16px;">
+                                        Colorway: <span style="font-weight:600; color:var(--text-primary);">${activeProduct.colorway || 'Original'}</span>
+                                    </div>
+                                    <div class="colorway-selector" style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
                                         ${variants.map(v => `
-                                            <button class="colorway-btn ${v.id === activeProduct.id ? 'active' : ''}" data-vid="${v.id}" style="
-                                                border: 2px solid ${v.id === activeProduct.id ? 'var(--primary)' : 'var(--border)'};
-                                                background: var(--bg-card);
-                                                border-radius: 8px;
+                                            <button class="colorway-btn ${v.id === activeProduct.id ? 'active' : ''}" data-vid="${v.id}" title="${v.colorway || v.name}" style="
+                                                border: 2px solid ${v.id === activeProduct.id ? 'var(--accent)' : 'var(--border-color)'};
+                                                background: #ffffff;
+                                                border-radius: var(--radius-md);
                                                 padding: 4px;
                                                 cursor: pointer;
-                                                width: 60px;
-                                                height: 60px;
+                                                width: 64px;
+                                                height: 64px;
                                                 overflow: hidden;
                                                 display: flex;
                                                 align-items: center;
                                                 justify-content: center;
-                                                transition: all 0.2s ease;
+                                                transition: all var(--transition-fast);
+                                                box-shadow: ${v.id === activeProduct.id ? '0 0 0 2px var(--accent-light)' : 'none'};
                                             ">
-                                                <img src="${v.image_url}" style="width:150%; height:auto; mix-blend-mode: multiply; filter: contrast(1.1); pointer-events:none;" />
+                                                <img src="${v.image_url}" alt="${v.name}" style="width:100%; height:100%; object-fit:contain; pointer-events:none;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 60%22><rect fill=%22%23fff%22 width=%2260%22 height=%2260%22/><text x=%2250%25%22 y=%2250%25%22 font-size=%2220%22 text-anchor=%22middle%22 dy=%22.3em%22>👟</text></svg>'" />
                                             </button>
                                         `).join('')}
                                     </div>
-                                ` : (activeProduct.colorway ? `<div class="product-detail-colorway" style="margin-top:10px;">${activeProduct.colorway}</div>` : "")}
+                                ` : (activeProduct.colorway ? `<div class="product-detail-colorway" style="margin-top:10px;color:var(--text-muted);font-size:0.9rem;">Colorway: <strong>${activeProduct.colorway}</strong></div>` : "")}
                                 
-                                ${activeProduct.style_id ? `<div class="product-detail-styleid" style="margin-bottom:20px;">SKU: ${activeProduct.style_id}</div>` : ""}
+                                ${activeProduct.style_id ? `<div class="product-detail-styleid" style="margin-bottom:16px;color:var(--text-muted);font-size:0.85rem;font-weight:700;">SKU: ${activeProduct.style_id}</div>` : ""}
                                 <p class="product-detail-desc">${activeProduct.description}</p>
 
                                 <div class="product-detail-section-title">Selecciona tu talla</div>
@@ -81,7 +84,7 @@ export async function renderProduct(container, params) {
                                 </div>
 
                                 ${hasResellLinks ? `
-                                    <div class="product-detail-resell">
+                                    <div class="product-detail-resell" style="margin-top:24px;">
                                         <div class="product-detail-section-title">Comparar precios</div>
                                         <div class="resell-links">
                                             ${resellLinks.stockX ? `<a href="${resellLinks.stockX}" target="_blank" rel="noopener" class="resell-link">
@@ -111,15 +114,12 @@ export async function renderProduct(container, params) {
 
             // Handle colorway change
             document.querySelectorAll(".colorway-btn").forEach(btn => {
-                btn.addEventListener("click", (e) => {
+                btn.addEventListener("click", () => {
                     const vid = parseInt(btn.dataset.vid);
                     if (vid !== activeProduct.id) {
                         activeProduct = variants.find(v => v.id === vid);
                         selectedSize = null; // Reset size selection for new variant
-                        
-                        // Optionally update URL to reflect specific variant without reloading
-                        window.history.replaceState({}, "", `/product?id=${activeProduct.id}`);
-                        render();
+                        window.location.hash = `/product/${activeProduct.id}`;
                     }
                 });
             });
@@ -141,15 +141,14 @@ export async function renderProduct(container, params) {
         }
 
         render();
-
     } catch (err) {
         container.innerHTML = `
             <div class="container" style="text-align:center;padding:100px 0;">
-                <h2 class="section-title">Producto no encontrado</h2>
-                <p class="section-subtitle" style="margin:0 auto;">El producto que buscas no existe.</p>
-                <button class="btn btn-primary" id="go-catalog" style="margin-top:24px;">Ver catálogo</button>
+                <h2 class="section-title">Error</h2>
+                <p class="section-subtitle" style="margin:0 auto 20px;">${err.message}</p>
+                <button class="btn btn-primary" id="err-catalog-btn">Ir al catálogo</button>
             </div>
         `;
-        document.getElementById("go-catalog")?.addEventListener("click", () => navigate("/catalog"));
+        document.getElementById("err-catalog-btn")?.addEventListener("click", () => navigate("/catalog"));
     }
 }
