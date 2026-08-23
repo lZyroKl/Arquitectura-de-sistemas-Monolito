@@ -11,12 +11,14 @@ export function navigate(path) {
 
 export function getParams() {
     const hash = window.location.hash.slice(1);
-    const parts = hash.split("/").filter(Boolean);
+    const pathOnly = hash.split("?")[0];
+    const parts = pathOnly.split("/").filter(Boolean);
     return parts;
 }
 
 function matchRoute(hash) {
-    const path = hash || "/";
+    const fullPath = hash || "/";
+    const path = fullPath.split("?")[0] || "/";
 
     if (routes[path]) return { handler: routes[path], params: {} };
 

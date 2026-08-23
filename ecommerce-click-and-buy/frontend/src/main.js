@@ -9,6 +9,7 @@ import { renderProduct } from "./pages/product.js";
 import { renderLogin } from "./pages/login.js";
 import { renderCheckout } from "./pages/checkout.js";
 import { api } from "./api.js";
+import { initTheme } from "./theme.js";
 
 export const store = {
     user: null,
@@ -49,6 +50,7 @@ export function refreshApp() {
 }
 
 async function init() {
+    initTheme();
     try {
         const user = await api.getMe();
         store.user = user;

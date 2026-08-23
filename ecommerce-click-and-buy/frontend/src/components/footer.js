@@ -4,7 +4,7 @@ export function renderFooter() {
         <div class="container">
             <div class="footer-grid">
                 <div>
-                    <div class="footer-brand">Click&Buy</div>
+                    <div class="footer-brand">Click<span class="logo-dot" style="color:var(--accent);">&</span>Buy</div>
                     <p class="footer-desc">Tu destino premium para las zapatillas más exclusivas. Las mejores marcas, los mejores precios.</p>
                 </div>
                 <div>
@@ -15,10 +15,10 @@ export function renderFooter() {
                 </div>
                 <div>
                     <div class="footer-col-title">Marcas</div>
-                    <a class="footer-link">Nike</a>
-                    <a class="footer-link">Adidas</a>
-                    <a class="footer-link">Puma</a>
-                    <a class="footer-link">New Balance</a>
+                    <a class="footer-link" data-link="/catalog?brand=Nike">Nike</a>
+                    <a class="footer-link" data-link="/catalog?brand=adidas">Adidas</a>
+                    <a class="footer-link" data-link="/catalog?brand=Puma">Puma</a>
+                    <a class="footer-link" data-link="/catalog?brand=New Balance">New Balance</a>
                 </div>
                 <div>
                     <div class="footer-col-title">Soporte</div>
