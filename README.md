@@ -19,7 +19,7 @@ Abre una terminal en la raíz del proyecto y ejecuta los siguientes comandos:
 
 ```bash
 # Entrar a la carpeta del backend
-cd "E-commerce Click&Buy/backend"
+cd ecommerce-click-and-buy/backend
 
 # (Opcional pero recomendado) Crear un entorno virtual para no mezclar dependencias
 python -m venv .venv
@@ -46,7 +46,7 @@ Abre una **segunda terminal** (manteniendo la del backend corriendo) y ejecuta:
 
 ```bash
 # Entrar a la carpeta del frontend
-cd "E-commerce Click&Buy/frontend"
+cd ecommerce-click-and-buy/frontend
 
 # Instalar las dependencias de Node
 npm install
@@ -69,7 +69,7 @@ Si deseas obtener zapatillas nuevas o actualizar los precios, existe un script o
 
 ```bash
 # En una terminal:
-cd "E-commerce Click&Buy/sneaks-fetcher"
+cd ecommerce-click-and-buy/sneaks-fetcher
 npm install
 npm run fetch
 ```
