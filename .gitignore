@@ -1,0 +1,27 @@
+# Dependencias de Node.js (Frontend y Fetcher)
+node_modules/
+dist/
+build/
+
+# Entornos virtuales de Python (Backend)
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Variables de entorno
+.env
+.env.local
+.env.development
+.env.production
+
+# Bases de datos y archivos generados (opcional, pero buena práctica)
+*.db
+*.sqlite3
+
+# Archivos del sistema operativo y editores
+.DS_Store
+.vscode/
+.idea/
+*.log

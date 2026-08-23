@@ -33,7 +33,7 @@ python -m venv .venv
 # Instalar las dependencias de Python
 pip install -r requirements.txt
 
-# (Opcional - solo si la base de datos está vacía) Poblar la base de datos con las zapatillas
+# (Requerido la primera vez) Poblar la base de datos local con las zapatillas
 python seed.py
 
 # Iniciar el servidor (correrá en el puerto 5000)
