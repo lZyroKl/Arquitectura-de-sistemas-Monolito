@@ -32,10 +32,15 @@ def init_db():
             brand TEXT NOT NULL,
             category TEXT NOT NULL,
             price REAL NOT NULL,
+            price_usd REAL,
             description TEXT,
             image_url TEXT,
             stock INTEGER DEFAULT 0,
             sizes TEXT DEFAULT '[]',
+            style_id TEXT DEFAULT '',
+            colorway TEXT DEFAULT '',
+            release_date TEXT DEFAULT '',
+            resell_links TEXT DEFAULT '{}',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)

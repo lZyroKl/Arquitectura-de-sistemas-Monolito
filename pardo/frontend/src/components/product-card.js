@@ -9,17 +9,23 @@ export function renderProductCard(product) {
         ? `${product.sizes.slice(0, 4).join(", ")}...`
         : product.sizes.join(", ");
 
+    const colorwayHtml = product.colorway
+        ? `<div class="product-card-colorway">${product.colorway}</div>`
+        : "";
+
     return `
     <div class="glass-card product-card" data-product-id="${product.id}">
         <div class="product-card-img">
             <img src="${product.image_url}" alt="${product.name}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 400%22><rect fill=%22%2318182a%22 width=%22400%22 height=%22400%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%234a4a6a%22 font-size=%2240%22 text-anchor=%22middle%22 dy=%22.3em%22>👟</text></svg>'" />
             <div class="product-card-badges">
                 <span class="badge badge-brand">${product.brand}</span>
+                ${product.style_id ? `<span class="badge badge-style">${product.style_id}</span>` : ""}
             </div>
         </div>
         <div class="product-card-body">
             <div class="product-card-brand">${product.brand}</div>
             <div class="product-card-name">${product.name}</div>
+            ${colorwayHtml}
             <div class="product-card-price">${formatPrice(product.price)}</div>
             <div class="product-card-footer">
                 <div class="product-card-sizes">Tallas: ${sizesText}</div>

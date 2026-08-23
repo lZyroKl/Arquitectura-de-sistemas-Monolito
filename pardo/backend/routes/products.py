@@ -23,6 +23,14 @@ def get_product(product_id):
         return jsonify(product)
     return jsonify({"error": "Producto no encontrado"}), 404
 
+@products_bp.route("/api/products/<int:product_id>/variants", methods=["GET"])
+def get_variants(product_id):
+    from models.product import get_product_variants
+    variants = get_product_variants(product_id)
+    if variants:
+        return jsonify(variants)
+    return jsonify({"error": "Variantes no encontradas"}), 404
+
 
 @products_bp.route("/api/products/brands", methods=["GET"])
 def list_brands():

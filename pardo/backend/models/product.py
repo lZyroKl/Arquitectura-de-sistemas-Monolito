@@ -4,7 +4,8 @@ from database import get_connection
 
 def get_all_products(brand=None, category=None, min_price=None, max_price=None, search=None):
     conn = get_connection()
-    query = "SELECT * FROM products WHERE 1=1"
+    # Query with GROUP BY name to avoid duplicates on the catalog
+    query = "SELECT id, name, brand, category, MIN(price) as price, price_usd, description, image_url, stock, sizes, style_id, colorway, release_date, resell_links, created_at FROM products WHERE 1=1"
     params = []
 
     if brand:
@@ -20,10 +21,10 @@ def get_all_products(brand=None, category=None, min_price=None, max_price=None, 
         query += " AND price <= ?"
         params.append(float(max_price))
     if search:
-        query += " AND (name LIKE ? OR brand LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
+        query += " AND (name LIKE ? OR brand LIKE ? OR colorway LIKE ? OR style_id LIKE ?)"
+        params.extend([f"%{search}%", f"%{search}%", f"%{search}%", f"%{search}%"])
 
-    query += " ORDER BY created_at DESC"
+    query += " GROUP BY name ORDER BY created_at DESC"
     rows = conn.execute(query, params).fetchall()
     conn.close()
 
@@ -31,6 +32,7 @@ def get_all_products(brand=None, category=None, min_price=None, max_price=None, 
     for row in rows:
         product = dict(row)
         product["sizes"] = json.loads(product["sizes"])
+        product["resell_links"] = json.loads(product.get("resell_links", "{}"))
         products.append(product)
     return products
 
@@ -42,6 +44,7 @@ def get_product_by_id(product_id):
     if row:
         product = dict(row)
         product["sizes"] = json.loads(product["sizes"])
+        product["resell_links"] = json.loads(product.get("resell_links", "{}"))
         return product
     return None
 
@@ -58,3 +61,22 @@ def get_categories():
     rows = conn.execute("SELECT DISTINCT category FROM products ORDER BY category").fetchall()
     conn.close()
     return [row["category"] for row in rows]
+
+def get_product_variants(product_id):
+    conn = get_connection()
+    # Get variants with the same name as the given product ID
+    query = """
+        SELECT * FROM products 
+        WHERE name = (SELECT name FROM products WHERE id = ?)
+        ORDER BY colorway ASC
+    """
+    rows = conn.execute(query, (product_id,)).fetchall()
+    conn.close()
+    
+    variants = []
+    for row in rows:
+        variant = dict(row)
+        variant["sizes"] = json.loads(variant["sizes"])
+        variant["resell_links"] = json.loads(variant.get("resell_links", "{}"))
+        variants.append(variant)
+    return variants

@@ -1,0 +1,13 @@
+{
+  "name": "sneaks-fetcher",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fetches real sneaker data from Sneaks API for the ecommerce store",
+  "scripts": {
+    "fetch": "node fetch.js"
+  },
+  "dependencies": {
+    "duck-duck-scrape": "^2.2.7",
+    "sneaks-api": "^1.2.3"
+  }
+}

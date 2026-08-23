@@ -6,7 +6,10 @@ export async function renderHome(container) {
     container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
 
     try {
-        const products = await api.getProducts();
+        const [products, brands] = await Promise.all([
+            api.getProducts(),
+            api.getBrands(),
+        ]);
         const featured = products.slice(0, 8);
 
         const categories = [
@@ -33,13 +36,32 @@ export async function renderHome(container) {
                             <div class="hero-stat-label">Productos</div>
                         </div>
                         <div class="hero-stat">
-                            <div class="hero-stat-value">7</div>
+                            <div class="hero-stat-value">${brands.length}</div>
                             <div class="hero-stat-label">Marcas</div>
                         </div>
                         <div class="hero-stat">
                             <div class="hero-stat-value">100%</div>
                             <div class="hero-stat-label">Originales</div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="brands-section">
+                <div class="container">
+                    <div class="section-header">
+                        <div>
+                            <h2 class="section-title">Marcas</h2>
+                            <p class="section-subtitle">Las mejores marcas del mundo en un solo lugar</p>
+                        </div>
+                    </div>
+                    <div class="brands-grid">
+                        ${brands.map(brand => `
+                            <div class="glass-card brand-card" data-brand="${brand}">
+                                <div class="brand-name">${brand}</div>
+                                <div class="brand-count">${products.filter(p => p.brand === brand).length} modelos</div>
+                            </div>
+                        `).join("")}
                     </div>
                 </div>
             </section>
@@ -57,6 +79,7 @@ export async function renderHome(container) {
                             <div class="glass-card category-card" data-category="${cat.name}">
                                 <div class="category-icon">${cat.icon}</div>
                                 <div class="category-name">${cat.name}</div>
+                                <div class="category-count">${cat.count} productos</div>
                             </div>
                         `).join("")}
                     </div>
@@ -82,12 +105,20 @@ export async function renderHome(container) {
         initProductCards();
 
         document.getElementById("hero-shop-btn").addEventListener("click", () => navigate("/catalog"));
-        document.getElementById("hero-brands-btn").addEventListener("click", () => navigate("/catalog"));
+        document.getElementById("hero-brands-btn").addEventListener("click", () => {
+            document.querySelector(".brands-section")?.scrollIntoView({ behavior: "smooth" });
+        });
         document.getElementById("see-all-btn").addEventListener("click", () => navigate("/catalog"));
 
         document.querySelectorAll("[data-category]").forEach((card) => {
             card.addEventListener("click", () => {
                 navigate(`/catalog?category=${card.dataset.category}`);
+            });
+        });
+
+        document.querySelectorAll("[data-brand]").forEach((card) => {
+            card.addEventListener("click", () => {
+                navigate(`/catalog?brand=${card.dataset.brand}`);
             });
         });
 

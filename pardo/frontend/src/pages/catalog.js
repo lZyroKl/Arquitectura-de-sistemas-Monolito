@@ -17,8 +17,15 @@ export async function renderCatalog(container) {
         const hashParams = new URLSearchParams(window.location.hash.split("?")[1] || "");
         if (hashParams.get("category")) {
             activeFilters.category = hashParams.get("category");
-            filteredProducts = products.filter(p => p.category === activeFilters.category);
         }
+        if (hashParams.get("brand")) {
+            activeFilters.brand = hashParams.get("brand");
+        }
+        filteredProducts = products.filter(p => {
+            if (activeFilters.brand && p.brand !== activeFilters.brand) return false;
+            if (activeFilters.category && p.category !== activeFilters.category) return false;
+            return true;
+        });
 
         function renderPage() {
             container.innerHTML = `

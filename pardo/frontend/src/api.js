@@ -27,6 +27,10 @@ export const api = {
         return request(`/products/${id}`);
     },
 
+    getProductVariants(id) {
+        return request(`/products/${id}/variants`);
+    },
+
     getBrands() {
         return request("/products/brands");
     },
