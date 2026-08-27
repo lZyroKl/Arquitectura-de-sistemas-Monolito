@@ -1,67 +1,55 @@
-from database import get_connection
+from database import db
+from datetime import datetime, timezone
 
+class Order(db.Model):
+    __tablename__ = 'orders'
 
-def create_order(user_id, items):
-    conn = get_connection()
-    total = sum(item["price"] * item["quantity"] for item in items)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    total = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), default='pending')
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    cursor = conn.execute(
-        "INSERT INTO orders (user_id, total) VALUES (?, ?)",
-        (user_id, total)
-    )
-    order_id = cursor.lastrowid
+    # Relationships
+    items = db.relationship('OrderItem', backref='order', lazy=True, cascade="all, delete-orphan")
+    payment = db.relationship('Payment', backref='order', uselist=False, cascade="all, delete-orphan")
 
-    for item in items:
-        conn.execute(
-            "INSERT INTO order_items (order_id, product_id, size, quantity, price) VALUES (?, ?, ?, ?, ?)",
-            (order_id, item["product_id"], item["size"], item["quantity"], item["price"])
-        )
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-    conn.commit()
-    order = get_order_by_id(order_id)
-    conn.close()
-    return order
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "total": self.total,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "items": [item.to_dict() for item in self.items]
+        }
 
+class OrderItem(db.Model):
+    __tablename__ = 'order_items'
 
-def get_orders_by_user(user_id):
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC",
-        (user_id,)
-    ).fetchall()
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    size = db.Column(db.String(20), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
 
-    orders = []
-    for row in rows:
-        order = dict(row)
-        items = conn.execute(
-            """SELECT oi.*, p.name as product_name, p.image_url
-               FROM order_items oi
-               JOIN products p ON oi.product_id = p.id
-               WHERE oi.order_id = ?""",
-            (order["id"],)
-        ).fetchall()
-        order["items"] = [dict(i) for i in items]
-        orders.append(order)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-    conn.close()
-    return orders
-
-
-def get_order_by_id(order_id):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
-    if not row:
-        conn.close()
-        return None
-
-    order = dict(row)
-    items = conn.execute(
-        """SELECT oi.*, p.name as product_name, p.image_url
-           FROM order_items oi
-           JOIN products p ON oi.product_id = p.id
-           WHERE oi.order_id = ?""",
-        (order["id"],)
-    ).fetchall()
-    order["items"] = [dict(i) for i in items]
-    conn.close()
-    return order
+    def to_dict(self):
+        data = {
+            "id": self.id,
+            "order_id": self.order_id,
+            "product_id": self.product_id,
+            "size": self.size,
+            "quantity": self.quantity,
+            "price": self.price,
+        }
+        if getattr(self, "product", None):
+            data["product_name"] = self.product.name  # type: ignore
+            data["image_url"] = self.product.image_url  # type: ignore
+        return data

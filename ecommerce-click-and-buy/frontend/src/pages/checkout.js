@@ -32,6 +32,32 @@ export async function renderCheckout(container) {
 
     const user = store.user;
 
+    const renderPaymentForm = () => {
+        const formContainer = document.getElementById("dynamic-payment-form");
+        if (!formContainer) return;
+
+        if (selectedPayment === "webpay") {
+            formContainer.innerHTML = `
+                <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;border:1px solid rgba(235, 17, 43, 0.2);">
+                    <img src="https://public.transbank.cl/public/img/webpayPlus.png" alt="Webpay Plus" style="height:40px;margin-bottom:12px;" onerror="this.style.display='none'" />
+                    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Serás redirigido al entorno <strong>seguro y oficial de Transbank (Webpay)</strong> para ingresar los datos de tu tarjeta.</p>
+                </div>
+            `;
+        } else if (selectedPayment === "transfer") {
+            formContainer.innerHTML = `
+                <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;">
+                    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Al finalizar tu pedido, recibirás un correo con los datos de nuestra cuenta bancaria. <strong>(Simulación: El pago se aprobará automáticamente)</strong>.</p>
+                </div>
+            `;
+        } else if (selectedPayment === "mercadopago") {
+            formContainer.innerHTML = `
+                <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;">
+                    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Serás redirigido a la plataforma de MercadoPago para completar la transacción. <strong>(Simulación: El pago se procesará automáticamente)</strong>.</p>
+                </div>
+            `;
+        }
+    };
+
     container.innerHTML = `
         <section class="checkout-page">
             <div class="container">
@@ -101,22 +127,13 @@ export async function renderCheckout(container) {
                                     <select class="input-field" id="cust-region" required>
                                         <option value="Región Metropolitana">Región Metropolitana</option>
                                         <option value="Región de Valparaíso">Región de Valparaíso</option>
-                                        <option value="Región del Biobío">Región del Biobío</option>
-                                        <option value="Región de Coquimbo">Región de Coquimbo</option>
-                                        <option value="Región de Antofagasta">Región de Antofagasta</option>
-                                        <option value="Región de Los Lagos">Región de Los Lagos</option>
                                         <option value="Otra Región">Otra Región</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="cust-city">Ciudad / Comuna *</label>
-                                    <input type="text" class="input-field" id="cust-city" placeholder="Ej: Santiago, Providencia, Viña del Mar" required />
+                                    <input type="text" class="input-field" id="cust-city" placeholder="Ej: Santiago" required />
                                 </div>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom:0;">
-                                <label class="form-label" for="cust-notes">Notas o Indicaciones de entrega (Opcional)</label>
-                                <input type="text" class="input-field" id="cust-notes" placeholder="Ej: Dejar en conserjería si no contesto el timbre" />
                             </div>
                         </div>
 
@@ -126,7 +143,7 @@ export async function renderCheckout(container) {
                                 <div class="step-badge">2</div>
                                 <div>
                                     <h3 class="checkout-step-title">Método de Pago Seguro</h3>
-                                    <p class="checkout-step-desc">Transacciones encriptadas y 100% protegidas</p>
+                                    <p class="checkout-step-desc">Transacciones encriptadas y 100% protegidas por Transbank</p>
                                 </div>
                             </div>
 
@@ -135,10 +152,9 @@ export async function renderCheckout(container) {
                                     <input type="radio" name="payment_method" value="webpay" checked />
                                     <div class="payment-option-body">
                                         <div class="payment-option-header">
-                                            <span class="payment-option-title">Webpay Plus / Tarjetas</span>
-                                            <span class="badge badge-red">Más rápido</span>
+                                            <span class="payment-option-title">Webpay Plus</span>
+                                            <span class="badge badge-red">Oficial</span>
                                         </div>
-                                        <p class="payment-option-desc">Tarjetas de Débito (Redcompra), Crédito (Visa, Mastercard, AMEX) y Prepago.</p>
                                     </div>
                                 </label>
 
@@ -146,9 +162,8 @@ export async function renderCheckout(container) {
                                     <input type="radio" name="payment_method" value="transfer" />
                                     <div class="payment-option-body">
                                         <div class="payment-option-header">
-                                            <span class="payment-option-title">Transferencia Bancaria</span>
+                                            <span class="payment-option-title">Transferencia</span>
                                         </div>
-                                        <p class="payment-option-desc">Transfiere directamente desde tu banco. Envío de comprobante automático.</p>
                                     </div>
                                 </label>
 
@@ -156,12 +171,14 @@ export async function renderCheckout(container) {
                                     <input type="radio" name="payment_method" value="mercadopago" />
                                     <div class="payment-option-body">
                                         <div class="payment-option-header">
-                                            <span class="payment-option-title">Mercado Pago / MACH</span>
+                                            <span class="payment-option-title">Mercado Pago</span>
                                         </div>
-                                        <p class="payment-option-desc">Paga con saldo en tu cuenta o cuotas sin interés con Mercado Pago.</p>
                                     </div>
                                 </label>
                             </div>
+                            
+                            <!-- Dynamic Payment Form Container -->
+                            <div id="dynamic-payment-form"></div>
                         </div>
                     </form>
 
@@ -172,13 +189,8 @@ export async function renderCheckout(container) {
                         <div class="checkout-summary-items">
                             ${cart.map(item => `
                                 <div class="checkout-summary-item">
-                                    <div class="checkout-summary-item-img">
-                                        <img src="${item.image_url}" alt="${item.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%2318182a%22 width=%2280%22 height=%2280%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%234a4a6a%22 font-size=%2220%22 text-anchor=%22middle%22 dy=%22.3em%22>👟</text></svg>'" />
-                                        <span class="item-qty-badge">${item.quantity}</span>
-                                    </div>
                                     <div class="checkout-summary-item-info">
-                                        <div class="checkout-summary-item-name">${item.name}</div>
-                                        <div class="checkout-summary-item-meta">${item.brand} · Talla ${item.size}</div>
+                                        <div class="checkout-summary-item-name">${item.quantity}x ${item.name}</div>
                                         <div class="checkout-summary-item-price">${formatPrice(item.price * item.quantity)}</div>
                                     </div>
                                 </div>
@@ -192,15 +204,8 @@ export async function renderCheckout(container) {
                             </div>
                             <div class="checkout-summary-row">
                                 <span>Costo de Envío</span>
-                                <span style="${isFreeShipping ? 'color:var(--success);font-weight:700;' : ''}">
-                                    ${isFreeShipping ? 'GRATIS' : formatPrice(shippingCost)}
-                                </span>
+                                <span>${isFreeShipping ? 'GRATIS' : formatPrice(shippingCost)}</span>
                             </div>
-                            ${!isFreeShipping ? `
-                                <div style="font-size:0.75rem;color:var(--accent);margin-top:-4px;margin-bottom:8px;">
-                                    ¡Agrega ${formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} más para envío gratis!
-                                </div>
-                            ` : ""}
                             <div class="checkout-summary-total">
                                 <span>Total a Pagar</span>
                                 <span>${formatPrice(totalOrder)}</span>
@@ -221,22 +226,18 @@ export async function renderCheckout(container) {
         </section>
     `;
 
-    document.getElementById("checkout-back-btn")?.addEventListener("click", () => navigate("/catalog"));
+    renderPaymentForm();
 
-    document.getElementById("checkout-login-link")?.addEventListener("click", () => {
-        navigate("/login");
-    });
+    document.getElementById("checkout-back-btn")?.addEventListener("click", () => navigate("/catalog"));
+    document.getElementById("checkout-login-link")?.addEventListener("click", () => navigate("/login"));
 
     // Payment Option selection handlers
-    document.querySelectorAll(".payment-option-card").forEach((card) => {
-        card.addEventListener("click", () => {
+    document.querySelectorAll("input[name='payment_method']").forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+            selectedPayment = e.target.value;
             document.querySelectorAll(".payment-option-card").forEach(c => c.classList.remove("active"));
-            card.classList.add("active");
-            const radio = card.querySelector("input[type='radio']");
-            if (radio) {
-                radio.checked = true;
-                selectedPayment = radio.value;
-            }
+            e.target.closest('.payment-option-card').classList.add("active");
+            renderPaymentForm();
         });
     });
 
@@ -251,19 +252,14 @@ export async function renderCheckout(container) {
             isSubmitting = true;
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;margin-right:8px;"></span> Procesando pedido...`;
+                submitBtn.innerHTML = `<span class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;margin-right:8px;"></span> Redirigiendo a Webpay...`;
             }
 
-            const customerName = document.getElementById("cust-name").value;
-            const customerEmail = document.getElementById("cust-email").value;
-            const customerAddress = document.getElementById("cust-address").value;
-            const customerCity = document.getElementById("cust-city").value;
-            const customerRegion = document.getElementById("cust-region").value;
-
-            // If not logged in, auto-authenticate or login with a guest account so backend creates order
+            // Auth Logic...
             if (!store.user) {
+                const customerName = document.getElementById("cust-name").value;
+                const customerEmail = document.getElementById("cust-email").value;
                 try {
-                    // Try auto login or register guest account
                     const guestPassword = "guestPassword2026!";
                     let authUser;
                     try {
@@ -274,89 +270,82 @@ export async function renderCheckout(container) {
                     store.user = authUser;
                     refreshApp();
                 } catch (authErr) {
-                    // If credentials error, tell user to login
-                    showToast("Por favor inicia sesión para continuar tu compra", "error");
+                    showToast("Por favor inicia sesión para continuar", "error");
                     isSubmitting = false;
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.textContent = `Pagar ${formatPrice(totalOrder)}`;
                     }
-                    navigate("/login");
                     return;
                 }
             }
 
             try {
+                // 1. CREATE ORDER (PENDING)
                 const items = cart.map(item => ({
                     product_id: item.product_id,
                     size: item.size,
                     quantity: item.quantity,
                     price: item.price,
                 }));
-
                 const order = await api.createOrder(items);
-                const orderNumber = `CB-${order.id ? String(order.id).padStart(6, "0") : Math.floor(100000 + Math.random() * 900000)}`;
 
-                clearCart();
-                showToast("¡Pedido realizado con éxito!");
+                // 2. PROCESS PAYMENT
+                if (selectedPayment === "webpay") {
+                    // LLamada a Webpay Init
+                    const wpResponse = await api.initWebpay(order.id);
+                    
+                    if (wpResponse.url && wpResponse.token) {
+                        // Limpiar carrito antes de ir a webpay, o podríamos hacerlo a la vuelta
+                        clearCart();
+                        
+                        // Enviar form oculto o redirigir (Form POST requerido por transbank si se usa de forma clásica, 
+                        // pero la nueva doc (v6) dice que puede enviarse a url + ?token_ws=token. 
+                        // O bien, podemos crear y enviar un form POST de manera segura:
+                        const form = document.createElement('form');
+                        form.action = wpResponse.url;
+                        form.method = 'POST';
+                        
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'token_ws';
+                        input.value = wpResponse.token;
+                        
+                        form.appendChild(input);
+                        document.body.appendChild(form);
+                        form.submit();
+                        return; // Detener ejecución aquí porque nos vamos de la página
+                    } else {
+                        throw new Error("Transbank no respondió con URL");
+                    }
+                } else {
+                    // Mock payments (Transferencia, Mercadopago)
+                    await api.processMockPayment(order.id, selectedPayment);
+                    
+                    clearCart();
+                    showToast("¡Pago procesado y pedido confirmado!");
 
-                // Render Confirmation View
-                container.innerHTML = `
-                    <section class="checkout-page">
-                        <div class="container" style="max-width:800px;">
-                            <div class="glass-card" style="padding:40px;text-align:center;">
-                                <div style="width:72px;height:72px;border-radius:50%;background:rgba(22,163,74,0.12);border:2px solid var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="var(--success)" width="36" height="36"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                                </div>
-                                <span class="badge badge-red" style="font-size:0.8rem;padding:4px 14px;margin-bottom:12px;">Pedido Confirmado</span>
-                                <h1 class="section-title" style="margin-bottom:8px;">¡Muchas gracias por tu compra!</h1>
-                                <p style="color:var(--text-secondary);font-size:1rem;margin-bottom:24px;">Hemos recibido tu pedido correctamente y ya estamos preparando tus zapatillas.</p>
-
-                                <div class="confirmation-order-box">
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Número de Pedido</span>
-                                        <strong class="detail-val" style="color:var(--accent);font-size:1.1rem;">#${orderNumber}</strong>
+                    const orderNumber = `CB-${String(order.id).padStart(6, "0")}`;
+                    
+                    // Render Confirmation
+                    container.innerHTML = `
+                        <section class="checkout-page">
+                            <div class="container" style="max-width:800px;">
+                                <div class="glass-card" style="padding:40px;text-align:center;">
+                                    <div style="width:72px;height:72px;border-radius:50%;background:rgba(22,163,74,0.12);border:2px solid var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="var(--success)" width="36" height="36"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                                     </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Cliente</span>
-                                        <span class="detail-val">${customerName} (${customerEmail})</span>
-                                    </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Dirección de Despacho</span>
-                                        <span class="detail-val">${customerAddress}, ${customerCity}, ${customerRegion}</span>
-                                    </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Método de Pago</span>
-                                        <span class="detail-val" style="text-transform:capitalize;">${selectedPayment}</span>
-                                    </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Tiempo Estimado de Entrega</span>
-                                        <span class="detail-val" style="color:var(--success);font-weight:700;">24 a 48 horas hábiles 🚚</span>
-                                    </div>
-                                    <div class="confirmation-detail-row" style="border-top:1px solid var(--border-color);padding-top:14px;margin-top:10px;">
-                                        <span class="detail-label" style="font-size:1rem;font-weight:700;">Total Pagado</span>
-                                        <strong class="detail-val" style="font-size:1.3rem;color:var(--accent);">${formatPrice(totalOrder)}</strong>
-                                    </div>
-                                </div>
-
-                                <div style="display:flex;gap:14px;justify-content:center;margin-top:32px;flex-wrap:wrap;">
-                                    <button class="btn btn-primary btn-lg" id="confirm-go-home">
-                                        Volver al Inicio
-                                    </button>
-                                    <button class="btn btn-secondary btn-lg" id="confirm-go-catalog">
-                                        Seguir Comprando
-                                    </button>
+                                    <h1 class="section-title">¡Compra Exitosa!</h1>
+                                    <p style="color:var(--text-secondary);margin-bottom:24px;">Tu pedido <strong>#${orderNumber}</strong> ha sido pagado y está en preparación.</p>
+                                    <button class="btn btn-primary btn-lg" id="confirm-go-home">Volver al Inicio</button>
                                 </div>
                             </div>
-                        </div>
-                    </section>
-                `;
-
-                document.getElementById("confirm-go-home")?.addEventListener("click", () => navigate("/"));
-                document.getElementById("confirm-go-catalog")?.addEventListener("click", () => navigate("/catalog"));
-
+                        </section>
+                    `;
+                    document.getElementById("confirm-go-home")?.addEventListener("click", () => navigate("/"));
+                }
             } catch (err) {
-                showToast(err.message || "Error al procesar el pedido", "error");
+                showToast(err.message || "Pago rechazado. Verifica tus datos.", "error");
                 isSubmitting = false;
                 if (submitBtn) {
                     submitBtn.disabled = false;

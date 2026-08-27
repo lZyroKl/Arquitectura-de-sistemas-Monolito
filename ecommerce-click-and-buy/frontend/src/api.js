@@ -71,4 +71,25 @@ export const api = {
             body: JSON.stringify({ items }),
         });
     },
+
+    initWebpay(orderId) {
+        return request("/payments/webpay/init", {
+            method: "POST",
+            body: JSON.stringify({ order_id: orderId }),
+        });
+    },
+
+    commitWebpay(tokenWs) {
+        return request("/payments/webpay/commit", {
+            method: "POST",
+            body: JSON.stringify({ token_ws: tokenWs }),
+        });
+    },
+
+    processMockPayment(orderId, method) {
+        return request("/payments/mock", {
+            method: "POST",
+            body: JSON.stringify({ order_id: orderId, method: method }),
+        });
+    }
 };

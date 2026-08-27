@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from models.order import create_order, get_orders_by_user
+from services.order_service import OrderService
 
 orders_bp = Blueprint("orders", __name__)
 
@@ -10,7 +10,7 @@ def list_orders():
     if not user_id:
         return jsonify({"error": "No autenticado"}), 401
 
-    orders = get_orders_by_user(user_id)
+    orders = OrderService.get_orders_by_user(user_id)
     return jsonify(orders)
 
 
@@ -28,5 +28,5 @@ def place_order():
         if not all(k in item for k in ("product_id", "size", "quantity", "price")):
             return jsonify({"error": "Datos de producto incompletos"}), 400
 
-    order = create_order(user_id, data["items"])
+    order = OrderService.create_order(user_id, data["items"])
     return jsonify(order), 201

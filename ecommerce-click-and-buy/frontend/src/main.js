@@ -9,6 +9,7 @@ import { renderCatalog } from "./pages/catalog.js";
 import { renderProduct } from "./pages/product.js";
 import { renderLogin } from "./pages/login.js";
 import { renderCheckout } from "./pages/checkout.js";
+import { renderWebpayReturn } from "./pages/webpay-return.js";
 import { renderAccount } from "./pages/account.js";
 import { api } from "./api.js";
 import { initTheme } from "./theme.js";
@@ -64,6 +65,7 @@ async function init() {
     route("/login", renderLogin);
     route("/account", renderAccount);
     route("/checkout", renderCheckout);
+    route("/webpay-return", renderWebpayReturn);
 
     const app = document.getElementById("app");
     app.innerHTML = `

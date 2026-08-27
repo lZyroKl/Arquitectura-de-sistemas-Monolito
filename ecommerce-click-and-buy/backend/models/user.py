@@ -1,45 +1,28 @@
-import hashlib
-from database import get_connection
+from database import db
+from datetime import datetime, timezone
 
+class User(db.Model):
+    __tablename__ = 'users'
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+    # Relationships
+    orders = db.relationship('Order', backref='user', lazy=True)
 
-def create_user(name, email, password):
-    conn = get_connection()
-    try:
-        conn.execute(
-            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-            (name, email, hash_password(password))
-        )
-        conn.commit()
-        user = conn.execute("SELECT id, name, email, created_at FROM users WHERE email = ?", (email,)).fetchone()
-        conn.close()
-        return dict(user)
-    except Exception:
-        conn.close()
-        return None
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-
-def authenticate_user(email, password):
-    conn = get_connection()
-    row = conn.execute(
-        "SELECT * FROM users WHERE email = ? AND password_hash = ?",
-        (email, hash_password(password))
-    ).fetchone()
-    conn.close()
-    if row:
-        user = dict(row)
-        del user["password_hash"]
-        return user
-    return None
-
-
-def get_user_by_id(user_id):
-    conn = get_connection()
-    row = conn.execute("SELECT id, name, email, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
-    conn.close()
-    if row:
-        return dict(row)
-    return None
+    def to_dict(self, include_password=False):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+        if include_password:
+            data["password_hash"] = self.password_hash
+        return data
