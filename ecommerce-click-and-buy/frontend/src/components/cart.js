@@ -96,11 +96,13 @@ export function removeFromCart(productId, size) {
     showToast("Producto eliminado del carrito", "error");
 }
 
-export function clearCart() {
+export function clearCart({ silent = false } = {}) {
     localStorage.removeItem(CART_KEY);
     refreshApp();
-    openCart();
-    showToast("Carrito vaciado");
+    if (!silent) {
+        openCart();
+        showToast("Carrito vaciado");
+    }
 }
 
 export function getCartTotal() {

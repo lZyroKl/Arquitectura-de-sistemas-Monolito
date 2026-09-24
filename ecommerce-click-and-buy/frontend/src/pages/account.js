@@ -3,6 +3,7 @@ import { formatPrice } from "../components/product-card.js";
 import { store, refreshApp } from "../main.js";
 import { navigate } from "../router.js";
 import { showToast } from "../components/cart.js";
+import { orderStatusBadge, formatOrderNumber } from "../components/order-status.js";
 
 export async function renderAccount(container) {
     if (!store.user) {
@@ -81,13 +82,11 @@ export async function renderAccount(container) {
                                             <div class="glass-card order-card">
                                                 <div class="order-card-header">
                                                     <div>
-                                                        <div class="order-id">Orden #CB-${String(order.id).padStart(6, "0")}</div>
+                                                        <div class="order-id">Orden #${formatOrderNumber(order.id)}</div>
                                                         <div class="order-date">${orderDate}</div>
                                                     </div>
                                                     <div style="text-align:right;">
-                                                        <span class="badge ${order.status === 'confirmed' || order.status === 'completed' ? 'badge-red' : 'badge-brand'}">
-                                                            ${order.status === 'pending' ? 'Preparando Despacho' : order.status}
-                                                        </span>
+                                                        ${orderStatusBadge(order.status)}
                                                         <div class="order-total">${formatPrice(order.total)}</div>
                                                     </div>
                                                 </div>

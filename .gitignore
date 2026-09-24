@@ -25,3 +25,12 @@ __pycache__/
 .vscode/
 .idea/
 *.log
+
+# Tests y coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build del frontend copiado al backend
+ecommerce-click-and-buy/backend/frontend_dist/

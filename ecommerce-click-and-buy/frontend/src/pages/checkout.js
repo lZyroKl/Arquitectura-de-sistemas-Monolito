@@ -1,7 +1,7 @@
 import { api } from "../api.js";
-import { getCart, getCartTotal, clearCart, showToast, FREE_SHIPPING_THRESHOLD } from "../components/cart.js";
+import { getCart, getCartTotal, showToast, FREE_SHIPPING_THRESHOLD } from "../components/cart.js";
 import { formatPrice } from "../components/product-card.js";
-import { store, refreshApp } from "../main.js";
+import { store } from "../main.js";
 import { navigate } from "../router.js";
 
 const SHIPPING_COST_FLAT = 4990;
@@ -27,7 +27,6 @@ export async function renderCheckout(container) {
     const shippingCost = isFreeShipping ? 0 : SHIPPING_COST_FLAT;
     const totalOrder = subtotal + shippingCost;
 
-    let selectedPayment = "webpay";
     let isSubmitting = false;
 
     const user = store.user;
@@ -59,8 +58,8 @@ export async function renderCheckout(container) {
 
                             ${!user ? `
                                 <div class="checkout-auth-alert">
-                                    <span>¿Ya tienes cuenta en Click&Buy?</span>
-                                    <a id="checkout-login-link" style="color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:6px;">Inicia sesión aquí</a>
+                                    <span>Para pagar necesitas una cuenta en Click&Buy.</span>
+                                    <a id="checkout-login-link" style="color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:6px;">Inicia sesión o regístrate</a>
                                 </div>
                             ` : `
                                 <div class="checkout-auth-alert success">
@@ -136,29 +135,9 @@ export async function renderCheckout(container) {
                                     <div class="payment-option-body">
                                         <div class="payment-option-header">
                                             <span class="payment-option-title">Webpay Plus / Tarjetas</span>
-                                            <span class="badge badge-red">Más rápido</span>
+                                            <span class="badge badge-red">Transbank</span>
                                         </div>
-                                        <p class="payment-option-desc">Tarjetas de Débito (Redcompra), Crédito (Visa, Mastercard, AMEX) y Prepago.</p>
-                                    </div>
-                                </label>
-
-                                <label class="payment-option-card" data-payment="transfer">
-                                    <input type="radio" name="payment_method" value="transfer" />
-                                    <div class="payment-option-body">
-                                        <div class="payment-option-header">
-                                            <span class="payment-option-title">Transferencia Bancaria</span>
-                                        </div>
-                                        <p class="payment-option-desc">Transfiere directamente desde tu banco. Envío de comprobante automático.</p>
-                                    </div>
-                                </label>
-
-                                <label class="payment-option-card" data-payment="mercadopago">
-                                    <input type="radio" name="payment_method" value="mercadopago" />
-                                    <div class="payment-option-body">
-                                        <div class="payment-option-header">
-                                            <span class="payment-option-title">Mercado Pago / MACH</span>
-                                        </div>
-                                        <p class="payment-option-desc">Paga con saldo en tu cuenta o cuotas sin interés con Mercado Pago.</p>
+                                        <p class="payment-option-desc">Tarjetas de Débito (Redcompra), Crédito (Visa, Mastercard, AMEX) y Prepago. Serás redirigido a Webpay para completar el pago de forma segura.</p>
                                     </div>
                                 </label>
                             </div>
@@ -207,8 +186,8 @@ export async function renderCheckout(container) {
                             </div>
                         </div>
 
-                        <button type="submit" form="checkout-form" class="btn btn-primary btn-lg" style="width:100%;margin-top:20px;" id="submit-order-btn">
-                            Pagar ${formatPrice(totalOrder)}
+                        <button type="${user ? "submit" : "button"}" form="checkout-form" class="btn btn-primary btn-lg" style="width:100%;margin-top:20px;" id="submit-order-btn">
+                            ${user ? `Pagar ${formatPrice(totalOrder)} con Webpay` : "Inicia sesión para pagar"}
                         </button>
 
                         <div class="checkout-guarantee">
@@ -223,146 +202,74 @@ export async function renderCheckout(container) {
 
     document.getElementById("checkout-back-btn")?.addEventListener("click", () => navigate("/catalog"));
 
-    document.getElementById("checkout-login-link")?.addEventListener("click", () => {
-        navigate("/login");
-    });
-
-    // Payment Option selection handlers
-    document.querySelectorAll(".payment-option-card").forEach((card) => {
-        card.addEventListener("click", () => {
-            document.querySelectorAll(".payment-option-card").forEach(c => c.classList.remove("active"));
-            card.classList.add("active");
-            const radio = card.querySelector("input[type='radio']");
-            if (radio) {
-                radio.checked = true;
-                selectedPayment = radio.value;
-            }
-        });
-    });
-
-    // Form Submit Handler
-    const form = document.getElementById("checkout-form");
-    if (form) {
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (isSubmitting) return;
-
-            const submitBtn = document.getElementById("submit-order-btn");
-            isSubmitting = true;
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;margin-right:8px;"></span> Procesando pedido...`;
-            }
-
-            const customerName = document.getElementById("cust-name").value;
-            const customerEmail = document.getElementById("cust-email").value;
-            const customerAddress = document.getElementById("cust-address").value;
-            const customerCity = document.getElementById("cust-city").value;
-            const customerRegion = document.getElementById("cust-region").value;
-
-            // If not logged in, auto-authenticate or login with a guest account so backend creates order
-            if (!store.user) {
-                try {
-                    // Try auto login or register guest account
-                    const guestPassword = "guestPassword2026!";
-                    let authUser;
-                    try {
-                        authUser = await api.login(customerEmail, guestPassword);
-                    } catch {
-                        authUser = await api.register(customerName, customerEmail, guestPassword);
-                    }
-                    store.user = authUser;
-                    refreshApp();
-                } catch (authErr) {
-                    // If credentials error, tell user to login
-                    showToast("Por favor inicia sesión para continuar tu compra", "error");
-                    isSubmitting = false;
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = `Pagar ${formatPrice(totalOrder)}`;
-                    }
-                    navigate("/login");
-                    return;
-                }
-            }
-
-            try {
-                const items = cart.map(item => ({
-                    product_id: item.product_id,
-                    size: item.size,
-                    quantity: item.quantity,
-                    price: item.price,
-                }));
-
-                const order = await api.createOrder(items);
-                const orderNumber = `CB-${order.id ? String(order.id).padStart(6, "0") : Math.floor(100000 + Math.random() * 900000)}`;
-
-                clearCart();
-                showToast("¡Pedido realizado con éxito!");
-
-                // Render Confirmation View
-                container.innerHTML = `
-                    <section class="checkout-page">
-                        <div class="container" style="max-width:800px;">
-                            <div class="glass-card" style="padding:40px;text-align:center;">
-                                <div style="width:72px;height:72px;border-radius:50%;background:rgba(22,163,74,0.12);border:2px solid var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="var(--success)" width="36" height="36"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                                </div>
-                                <span class="badge badge-red" style="font-size:0.8rem;padding:4px 14px;margin-bottom:12px;">Pedido Confirmado</span>
-                                <h1 class="section-title" style="margin-bottom:8px;">¡Muchas gracias por tu compra!</h1>
-                                <p style="color:var(--text-secondary);font-size:1rem;margin-bottom:24px;">Hemos recibido tu pedido correctamente y ya estamos preparando tus zapatillas.</p>
-
-                                <div class="confirmation-order-box">
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Número de Pedido</span>
-                                        <strong class="detail-val" style="color:var(--accent);font-size:1.1rem;">#${orderNumber}</strong>
-                                    </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Cliente</span>
-                                        <span class="detail-val">${customerName} (${customerEmail})</span>
-                                    </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Dirección de Despacho</span>
-                                        <span class="detail-val">${customerAddress}, ${customerCity}, ${customerRegion}</span>
-                                    </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Método de Pago</span>
-                                        <span class="detail-val" style="text-transform:capitalize;">${selectedPayment}</span>
-                                    </div>
-                                    <div class="confirmation-detail-row">
-                                        <span class="detail-label">Tiempo Estimado de Entrega</span>
-                                        <span class="detail-val" style="color:var(--success);font-weight:700;">24 a 48 horas hábiles 🚚</span>
-                                    </div>
-                                    <div class="confirmation-detail-row" style="border-top:1px solid var(--border-color);padding-top:14px;margin-top:10px;">
-                                        <span class="detail-label" style="font-size:1rem;font-weight:700;">Total Pagado</span>
-                                        <strong class="detail-val" style="font-size:1.3rem;color:var(--accent);">${formatPrice(totalOrder)}</strong>
-                                    </div>
-                                </div>
-
-                                <div style="display:flex;gap:14px;justify-content:center;margin-top:32px;flex-wrap:wrap;">
-                                    <button class="btn btn-primary btn-lg" id="confirm-go-home">
-                                        Volver al Inicio
-                                    </button>
-                                    <button class="btn btn-secondary btn-lg" id="confirm-go-catalog">
-                                        Seguir Comprando
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                `;
-
-                document.getElementById("confirm-go-home")?.addEventListener("click", () => navigate("/"));
-                document.getElementById("confirm-go-catalog")?.addEventListener("click", () => navigate("/catalog"));
-
-            } catch (err) {
-                showToast(err.message || "Error al procesar el pedido", "error");
-                isSubmitting = false;
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = `Pagar ${formatPrice(totalOrder)}`;
-                }
-            }
-        });
+    const goToLogin = () => navigate("/login?next=/checkout");
+    document.getElementById("checkout-login-link")?.addEventListener("click", goToLogin);
+    if (!user) {
+        document.getElementById("submit-order-btn")?.addEventListener("click", goToLogin);
     }
+
+    const form = document.getElementById("checkout-form");
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        if (!store.user) {
+            showToast("Inicia sesión o crea una cuenta para pagar", "error");
+            goToLogin();
+            return;
+        }
+
+        const submitBtn = document.getElementById("submit-order-btn");
+        const resetButton = () => {
+            isSubmitting = false;
+            submitBtn.disabled = false;
+            submitBtn.textContent = `Pagar ${formatPrice(totalOrder)} con Webpay`;
+        };
+
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;margin-right:8px;"></span> Conectando con Webpay...`;
+
+        const shipping = {
+            name: document.getElementById("cust-name").value,
+            rut: document.getElementById("cust-rut").value,
+            email: document.getElementById("cust-email").value,
+            phone: document.getElementById("cust-phone").value,
+            address: document.getElementById("cust-address").value,
+            region: document.getElementById("cust-region").value,
+            city: document.getElementById("cust-city").value,
+            notes: document.getElementById("cust-notes").value,
+        };
+
+        // El backend recalcula precios y envío; solo enviamos qué se compra
+        const items = cart.map(item => ({
+            product_id: item.product_id,
+            size: item.size,
+            quantity: item.quantity,
+        }));
+
+        try {
+            const { url, token } = await api.createWebpayTransaction(items, shipping);
+            redirectToWebpay(url, token);
+        } catch (err) {
+            showToast(err.message || "No fue posible iniciar el pago", "error");
+            resetButton();
+        }
+    });
+}
+
+// Webpay exige que el token se envíe con un formulario POST a su URL
+function redirectToWebpay(url, token) {
+    const webpayForm = document.createElement("form");
+    webpayForm.method = "POST";
+    webpayForm.action = url;
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "token_ws";
+    input.value = token;
+
+    webpayForm.appendChild(input);
+    document.body.appendChild(webpayForm);
+    webpayForm.submit();
 }

@@ -3,7 +3,6 @@ from database import get_connection
 
 
 def get_all_products(brand=None, category=None, min_price=None, max_price=None, search=None):
-    conn = get_connection()
     # Query with GROUP BY name to avoid duplicates on the catalog
     query = "SELECT id, name, brand, category, MIN(price) as price, price_usd, description, image_url, stock, sizes, style_id, colorway, release_date, resell_links, created_at FROM products WHERE 1=1"
     params = []
@@ -25,6 +24,7 @@ def get_all_products(brand=None, category=None, min_price=None, max_price=None, 
         params.extend([f"%{search}%", f"%{search}%", f"%{search}%", f"%{search}%"])
 
     query += " GROUP BY name ORDER BY created_at DESC"
+    conn = get_connection()
     rows = conn.execute(query, params).fetchall()
     conn.close()
 
@@ -61,6 +61,7 @@ def get_categories():
     rows = conn.execute("SELECT DISTINCT category FROM products ORDER BY category").fetchall()
     conn.close()
     return [row["category"] for row in rows]
+
 
 def get_product_variants(product_id):
     conn = get_connection()

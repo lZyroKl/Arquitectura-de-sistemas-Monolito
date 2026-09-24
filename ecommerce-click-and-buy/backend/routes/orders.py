@@ -1,32 +1,55 @@
-from flask import Blueprint, request, jsonify, session
-from models.order import create_order, get_orders_by_user
+from flask import Blueprint, jsonify, g
+from models.order import get_orders_by_user, get_order_by_id
+from routes.decorators import login_required
 
 orders_bp = Blueprint("orders", __name__)
 
+# Los pedidos se crean únicamente a través de /api/payments/webpay/create,
+# así no existe un camino para generar pedidos sin pasar por el pago.
+
 
 @orders_bp.route("/api/orders", methods=["GET"])
+@login_required
 def list_orders():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "No autenticado"}), 401
+    """Listar los pedidos del usuario autenticado
+    ---
+    tags: [Pedidos]
+    responses:
+      200:
+        description: Pedidos ordenados del más reciente al más antiguo
+        schema:
+          type: array
+          items: {$ref: '#/definitions/Order'}
+      401:
+        description: No autenticado
+        schema: {$ref: '#/definitions/Error'}
+    """
+    return jsonify(get_orders_by_user(g.user_id))
 
-    orders = get_orders_by_user(user_id)
-    return jsonify(orders)
 
-
-@orders_bp.route("/api/orders", methods=["POST"])
-def place_order():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "No autenticado"}), 401
-
-    data = request.get_json()
-    if not data or "items" not in data or len(data["items"]) == 0:
-        return jsonify({"error": "El pedido debe contener al menos un producto"}), 400
-
-    for item in data["items"]:
-        if not all(k in item for k in ("product_id", "size", "quantity", "price")):
-            return jsonify({"error": "Datos de producto incompletos"}), 400
-
-    order = create_order(user_id, data["items"])
-    return jsonify(order), 201
+@orders_bp.route("/api/orders/<int:order_id>", methods=["GET"])
+@login_required
+def get_order(order_id):
+    """Obtener un pedido del usuario autenticado
+    ---
+    tags: [Pedidos]
+    parameters:
+      - in: path
+        name: order_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Pedido con sus productos y estado de pago
+        schema: {$ref: '#/definitions/Order'}
+      401:
+        description: No autenticado
+        schema: {$ref: '#/definitions/Error'}
+      404:
+        description: Pedido no encontrado
+        schema: {$ref: '#/definitions/Error'}
+    """
+    order = get_order_by_id(order_id)
+    if not order or order["user_id"] != g.user_id:
+        return jsonify({"error": "Pedido no encontrado"}), 404
+    return jsonify(order)
