@@ -1,7 +1,7 @@
 import { api } from "../api.js";
-import { getCart, getCartTotal, clearCart, showToast, FREE_SHIPPING_THRESHOLD } from "../components/cart.js";
+import { getCart, getCartTotal, showToast, FREE_SHIPPING_THRESHOLD } from "../components/cart.js";
 import { formatPrice } from "../components/product-card.js";
-import { store, refreshApp } from "../main.js";
+import { store } from "../main.js";
 import { navigate } from "../router.js";
 
 const SHIPPING_COST_FLAT = 4990;
@@ -27,36 +27,9 @@ export async function renderCheckout(container) {
     const shippingCost = isFreeShipping ? 0 : SHIPPING_COST_FLAT;
     const totalOrder = subtotal + shippingCost;
 
-    let selectedPayment = "webpay";
     let isSubmitting = false;
 
     const user = store.user;
-
-    const renderPaymentForm = () => {
-        const formContainer = document.getElementById("dynamic-payment-form");
-        if (!formContainer) return;
-
-        if (selectedPayment === "webpay") {
-            formContainer.innerHTML = `
-                <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;border:1px solid rgba(235, 17, 43, 0.2);">
-                    <img src="https://public.transbank.cl/public/img/webpayPlus.png" alt="Webpay Plus" style="height:40px;margin-bottom:12px;" onerror="this.style.display='none'" />
-                    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Serás redirigido al entorno <strong>seguro y oficial de Transbank (Webpay)</strong> para ingresar los datos de tu tarjeta.</p>
-                </div>
-            `;
-        } else if (selectedPayment === "transfer") {
-            formContainer.innerHTML = `
-                <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;">
-                    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Al finalizar tu pedido, recibirás un correo con los datos de nuestra cuenta bancaria. <strong>(Simulación: El pago se aprobará automáticamente)</strong>.</p>
-                </div>
-            `;
-        } else if (selectedPayment === "mercadopago") {
-            formContainer.innerHTML = `
-                <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;">
-                    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Serás redirigido a la plataforma de MercadoPago para completar la transacción. <strong>(Simulación: El pago se procesará automáticamente)</strong>.</p>
-                </div>
-            `;
-        }
-    };
 
     container.innerHTML = `
         <section class="checkout-page">
@@ -85,8 +58,8 @@ export async function renderCheckout(container) {
 
                             ${!user ? `
                                 <div class="checkout-auth-alert">
-                                    <span>¿Ya tienes cuenta en Click&Buy?</span>
-                                    <a id="checkout-login-link" style="color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:6px;">Inicia sesión aquí</a>
+                                    <span>Para pagar necesitas una cuenta en Click&Buy.</span>
+                                    <a id="checkout-login-link" style="color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:6px;">Inicia sesión o regístrate</a>
                                 </div>
                             ` : `
                                 <div class="checkout-auth-alert success">
@@ -127,13 +100,22 @@ export async function renderCheckout(container) {
                                     <select class="input-field" id="cust-region" required>
                                         <option value="Región Metropolitana">Región Metropolitana</option>
                                         <option value="Región de Valparaíso">Región de Valparaíso</option>
+                                        <option value="Región del Biobío">Región del Biobío</option>
+                                        <option value="Región de Coquimbo">Región de Coquimbo</option>
+                                        <option value="Región de Antofagasta">Región de Antofagasta</option>
+                                        <option value="Región de Los Lagos">Región de Los Lagos</option>
                                         <option value="Otra Región">Otra Región</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="cust-city">Ciudad / Comuna *</label>
-                                    <input type="text" class="input-field" id="cust-city" placeholder="Ej: Santiago" required />
+                                    <input type="text" class="input-field" id="cust-city" placeholder="Ej: Santiago, Providencia, Viña del Mar" required />
                                 </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="cust-notes">Notas o Indicaciones de entrega (Opcional)</label>
+                                <input type="text" class="input-field" id="cust-notes" placeholder="Ej: Dejar en conserjería si no contesto el timbre" />
                             </div>
                         </div>
 
@@ -152,33 +134,18 @@ export async function renderCheckout(container) {
                                     <input type="radio" name="payment_method" value="webpay" checked />
                                     <div class="payment-option-body">
                                         <div class="payment-option-header">
-                                            <span class="payment-option-title">Webpay Plus</span>
-                                            <span class="badge badge-red">Oficial</span>
+                                            <span class="payment-option-title">Webpay Plus / Tarjetas</span>
+                                            <span class="badge badge-red">Transbank</span>
                                         </div>
-                                    </div>
-                                </label>
-
-                                <label class="payment-option-card" data-payment="transfer">
-                                    <input type="radio" name="payment_method" value="transfer" />
-                                    <div class="payment-option-body">
-                                        <div class="payment-option-header">
-                                            <span class="payment-option-title">Transferencia</span>
-                                        </div>
-                                    </div>
-                                </label>
-
-                                <label class="payment-option-card" data-payment="mercadopago">
-                                    <input type="radio" name="payment_method" value="mercadopago" />
-                                    <div class="payment-option-body">
-                                        <div class="payment-option-header">
-                                            <span class="payment-option-title">Mercado Pago</span>
-                                        </div>
+                                        <p class="payment-option-desc">Tarjetas de Débito (Redcompra), Crédito (Visa, Mastercard, AMEX) y Prepago.</p>
                                     </div>
                                 </label>
                             </div>
-                            
-                            <!-- Dynamic Payment Form Container -->
-                            <div id="dynamic-payment-form"></div>
+
+                            <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;border:1px solid rgba(235, 17, 43, 0.2);">
+                                <img src="https://public.transbank.cl/public/img/webpayPlus.png" alt="Webpay Plus" style="height:40px;margin-bottom:12px;" onerror="this.style.display='none'" />
+                                <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Serás redirigido al entorno <strong>seguro y oficial de Transbank (Webpay)</strong> para ingresar los datos de tu tarjeta.</p>
+                            </div>
                         </div>
                     </form>
 
@@ -189,8 +156,13 @@ export async function renderCheckout(container) {
                         <div class="checkout-summary-items">
                             ${cart.map(item => `
                                 <div class="checkout-summary-item">
+                                    <div class="checkout-summary-item-img">
+                                        <img src="${item.image_url}" alt="${item.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%2318182a%22 width=%2280%22 height=%2280%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%234a4a6a%22 font-size=%2220%22 text-anchor=%22middle%22 dy=%22.3em%22>👟</text></svg>'" />
+                                        <span class="item-qty-badge">${item.quantity}</span>
+                                    </div>
                                     <div class="checkout-summary-item-info">
-                                        <div class="checkout-summary-item-name">${item.quantity}x ${item.name}</div>
+                                        <div class="checkout-summary-item-name">${item.name}</div>
+                                        <div class="checkout-summary-item-meta">${item.brand} · Talla ${item.size}</div>
                                         <div class="checkout-summary-item-price">${formatPrice(item.price * item.quantity)}</div>
                                     </div>
                                 </div>
@@ -204,16 +176,23 @@ export async function renderCheckout(container) {
                             </div>
                             <div class="checkout-summary-row">
                                 <span>Costo de Envío</span>
-                                <span>${isFreeShipping ? 'GRATIS' : formatPrice(shippingCost)}</span>
+                                <span style="${isFreeShipping ? 'color:var(--success);font-weight:700;' : ''}">
+                                    ${isFreeShipping ? 'GRATIS' : formatPrice(shippingCost)}
+                                </span>
                             </div>
+                            ${!isFreeShipping ? `
+                                <div style="font-size:0.75rem;color:var(--accent);margin-top:-4px;margin-bottom:8px;">
+                                    ¡Agrega ${formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} más para envío gratis!
+                                </div>
+                            ` : ""}
                             <div class="checkout-summary-total">
                                 <span>Total a Pagar</span>
                                 <span>${formatPrice(totalOrder)}</span>
                             </div>
                         </div>
 
-                        <button type="submit" form="checkout-form" class="btn btn-primary btn-lg" style="width:100%;margin-top:20px;" id="submit-order-btn">
-                            Pagar ${formatPrice(totalOrder)}
+                        <button type="${user ? "submit" : "button"}" form="checkout-form" class="btn btn-primary btn-lg" style="width:100%;margin-top:20px;" id="submit-order-btn">
+                            ${user ? `Pagar ${formatPrice(totalOrder)} con Webpay` : "Inicia sesión para pagar"}
                         </button>
 
                         <div class="checkout-guarantee">
@@ -226,132 +205,76 @@ export async function renderCheckout(container) {
         </section>
     `;
 
-    renderPaymentForm();
-
     document.getElementById("checkout-back-btn")?.addEventListener("click", () => navigate("/catalog"));
-    document.getElementById("checkout-login-link")?.addEventListener("click", () => navigate("/login"));
 
-    // Payment Option selection handlers
-    document.querySelectorAll("input[name='payment_method']").forEach((radio) => {
-        radio.addEventListener("change", (e) => {
-            selectedPayment = e.target.value;
-            document.querySelectorAll(".payment-option-card").forEach(c => c.classList.remove("active"));
-            e.target.closest('.payment-option-card').classList.add("active");
-            renderPaymentForm();
-        });
-    });
-
-    // Form Submit Handler
-    const form = document.getElementById("checkout-form");
-    if (form) {
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (isSubmitting) return;
-
-            const submitBtn = document.getElementById("submit-order-btn");
-            isSubmitting = true;
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;margin-right:8px;"></span> Redirigiendo a Webpay...`;
-            }
-
-            // Auth Logic...
-            if (!store.user) {
-                const customerName = document.getElementById("cust-name").value;
-                const customerEmail = document.getElementById("cust-email").value;
-                try {
-                    const guestPassword = "guestPassword2026!";
-                    let authUser;
-                    try {
-                        authUser = await api.login(customerEmail, guestPassword);
-                    } catch {
-                        authUser = await api.register(customerName, customerEmail, guestPassword);
-                    }
-                    store.user = authUser;
-                    refreshApp();
-                } catch (authErr) {
-                    showToast("Por favor inicia sesión para continuar", "error");
-                    isSubmitting = false;
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = `Pagar ${formatPrice(totalOrder)}`;
-                    }
-                    return;
-                }
-            }
-
-            try {
-                // 1. CREATE ORDER (PENDING)
-                const items = cart.map(item => ({
-                    product_id: item.product_id,
-                    size: item.size,
-                    quantity: item.quantity,
-                    price: item.price,
-                }));
-                const order = await api.createOrder(items);
-
-                // 2. PROCESS PAYMENT
-                if (selectedPayment === "webpay") {
-                    // LLamada a Webpay Init
-                    const wpResponse = await api.initWebpay(order.id);
-                    
-                    if (wpResponse.url && wpResponse.token) {
-                        // Limpiar carrito antes de ir a webpay, o podríamos hacerlo a la vuelta
-                        clearCart();
-                        
-                        // Enviar form oculto o redirigir (Form POST requerido por transbank si se usa de forma clásica, 
-                        // pero la nueva doc (v6) dice que puede enviarse a url + ?token_ws=token. 
-                        // O bien, podemos crear y enviar un form POST de manera segura:
-                        const form = document.createElement('form');
-                        form.action = wpResponse.url;
-                        form.method = 'POST';
-                        
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = 'token_ws';
-                        input.value = wpResponse.token;
-                        
-                        form.appendChild(input);
-                        document.body.appendChild(form);
-                        form.submit();
-                        return; // Detener ejecución aquí porque nos vamos de la página
-                    } else {
-                        throw new Error("Transbank no respondió con URL");
-                    }
-                } else {
-                    // Mock payments (Transferencia, Mercadopago)
-                    await api.processMockPayment(order.id, selectedPayment);
-                    
-                    clearCart();
-                    showToast("¡Pago procesado y pedido confirmado!");
-
-                    const orderNumber = `CB-${String(order.id).padStart(6, "0")}`;
-                    
-                    // Render Confirmation
-                    container.innerHTML = `
-                        <section class="checkout-page">
-                            <div class="container" style="max-width:800px;">
-                                <div class="glass-card" style="padding:40px;text-align:center;">
-                                    <div style="width:72px;height:72px;border-radius:50%;background:rgba(22,163,74,0.12);border:2px solid var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="var(--success)" width="36" height="36"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                                    </div>
-                                    <h1 class="section-title">¡Compra Exitosa!</h1>
-                                    <p style="color:var(--text-secondary);margin-bottom:24px;">Tu pedido <strong>#${orderNumber}</strong> ha sido pagado y está en preparación.</p>
-                                    <button class="btn btn-primary btn-lg" id="confirm-go-home">Volver al Inicio</button>
-                                </div>
-                            </div>
-                        </section>
-                    `;
-                    document.getElementById("confirm-go-home")?.addEventListener("click", () => navigate("/"));
-                }
-            } catch (err) {
-                showToast(err.message || "Pago rechazado. Verifica tus datos.", "error");
-                isSubmitting = false;
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = `Pagar ${formatPrice(totalOrder)}`;
-                }
-            }
-        });
+    const goToLogin = () => navigate("/login?next=/checkout");
+    document.getElementById("checkout-login-link")?.addEventListener("click", goToLogin);
+    if (!user) {
+        document.getElementById("submit-order-btn")?.addEventListener("click", goToLogin);
     }
+
+    const form = document.getElementById("checkout-form");
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        if (!store.user) {
+            showToast("Inicia sesión o crea una cuenta para pagar", "error");
+            goToLogin();
+            return;
+        }
+
+        const submitBtn = document.getElementById("submit-order-btn");
+        const resetButton = () => {
+            isSubmitting = false;
+            submitBtn.disabled = false;
+            submitBtn.textContent = `Pagar ${formatPrice(totalOrder)} con Webpay`;
+        };
+
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;margin-right:8px;"></span> Conectando con Webpay...`;
+
+        const shipping = {
+            name: document.getElementById("cust-name").value,
+            rut: document.getElementById("cust-rut").value,
+            email: document.getElementById("cust-email").value,
+            phone: document.getElementById("cust-phone").value,
+            address: document.getElementById("cust-address").value,
+            region: document.getElementById("cust-region").value,
+            city: document.getElementById("cust-city").value,
+            notes: document.getElementById("cust-notes").value,
+        };
+
+        // El backend recalcula precios y envío; solo enviamos qué se compra
+        const items = cart.map(item => ({
+            product_id: item.product_id,
+            size: item.size,
+            quantity: item.quantity,
+        }));
+
+        try {
+            const { url, token } = await api.createWebpayTransaction(items, shipping);
+            redirectToWebpay(url, token);
+        } catch (err) {
+            showToast(err.message || "No fue posible iniciar el pago", "error");
+            resetButton();
+        }
+    });
+}
+
+// Webpay exige que el token se envíe con un formulario POST a su URL
+function redirectToWebpay(url, token) {
+    const webpayForm = document.createElement("form");
+    webpayForm.method = "POST";
+    webpayForm.action = url;
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "token_ws";
+    input.value = token;
+
+    webpayForm.appendChild(input);
+    document.body.appendChild(webpayForm);
+    webpayForm.submit();
 }

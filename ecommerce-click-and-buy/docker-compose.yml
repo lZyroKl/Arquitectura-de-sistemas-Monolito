@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    image: click-and-buy
+    ports:
+      - "5000:5000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-cambia-esta-clave-en-produccion}
+      FRONTEND_URL: http://localhost:5000
+      TBK_ENV: integration
+    volumes:
+      - db-data:/data
+    restart: unless-stopped
+
+volumes:
+  db-data:

@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 async function request(endpoint, options = {}) {
     const config = {
@@ -65,31 +65,14 @@ export const api = {
         return request("/orders");
     },
 
-    createOrder(items) {
-        return request("/orders", {
-            method: "POST",
-            body: JSON.stringify({ items }),
-        });
+    getOrder(id) {
+        return request(`/orders/${id}`);
     },
 
-    initWebpay(orderId) {
-        return request("/payments/webpay/init", {
+    createWebpayTransaction(items, shipping) {
+        return request("/payments/webpay/create", {
             method: "POST",
-            body: JSON.stringify({ order_id: orderId }),
+            body: JSON.stringify({ items, shipping }),
         });
     },
-
-    commitWebpay(tokenWs) {
-        return request("/payments/webpay/commit", {
-            method: "POST",
-            body: JSON.stringify({ token_ws: tokenWs }),
-        });
-    },
-
-    processMockPayment(orderId, method) {
-        return request("/payments/mock", {
-            method: "POST",
-            body: JSON.stringify({ order_id: orderId, method: method }),
-        });
-    }
 };

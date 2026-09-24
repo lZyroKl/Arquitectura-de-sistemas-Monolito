@@ -2,3 +2,11 @@
 python_version = "3.14"
 search_path = ["."]
 venv_path = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--cov=. --cov-report=term-missing --cov-fail-under=60"
+
+[tool.coverage.run]
+omit = ["tests/*", ".venv/*"]

@@ -1,83 +1,112 @@
-from flask import Blueprint, request, jsonify, session, redirect
-from services.payment_service import PaymentService
-from transbank.webpay.webpay_plus.transaction import Transaction
-from transbank.common.options import WebpayOptions
-from transbank.common.integration_commerce_codes import IntegrationCommerceCodes
-from transbank.common.integration_api_keys import IntegrationApiKeys
-from transbank.common.integration_type import IntegrationType
+from flask import Blueprint, current_app, g, jsonify, redirect, request, url_for
 
-def get_tx():
-    return Transaction(WebpayOptions(
-        commerce_code=IntegrationCommerceCodes.WEBPAY_PLUS, 
-        api_key=IntegrationApiKeys.WEBPAY, 
-        integration_type=IntegrationType.TEST
-    ))
+from routes.decorators import login_required
+from services.order_service import OrderValidationError
+from services.payment_service import PaymentGatewayError, PaymentService
 
 payments_bp = Blueprint("payments", __name__)
 
-@payments_bp.route("/api/payments/webpay/init", methods=["POST"])
-def init_webpay():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "No autenticado"}), 401
 
-    data = request.get_json()
-    order_id = data.get("order_id")
-    if not order_id:
-        return jsonify({"error": "Falta order_id"}), 400
+def _result_redirect(order_id=None):
+    url = f"{current_app.config['FRONTEND_URL']}/#/checkout/result"
+    if order_id:
+        url += f"?order={order_id}"
+    return redirect(url)
 
-    result = PaymentService.init_webpay(order_id, user_id)
-    if not result["success"]:
-        return jsonify({"error": result["error"]}), 400
 
-    # Inicializar transacción en Transbank
+@payments_bp.route("/api/payments/webpay/create", methods=["POST"])
+@login_required
+def create_webpay_transaction():
+    """Crear el pedido e iniciar el pago con Webpay Plus
+    ---
+    tags: [Pagos]
+    description: |
+      Valida el carrito contra la base de datos (precios, tallas y stock), calcula el envío,
+      crea el pedido en estado `pending` e inicia una transacción en Webpay Plus.
+      El frontend debe enviar un formulario POST a `url` con el campo `token_ws` = `token`.
+      Los precios enviados por el cliente se ignoran.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [items, shipping]
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                required: [product_id, size, quantity]
+                properties:
+                  product_id: {type: integer, example: 1}
+                  size: {type: string, example: "42"}
+                  quantity: {type: integer, example: 1}
+            shipping: {$ref: '#/definitions/ShippingData'}
+    responses:
+      201:
+        description: Transacción creada
+        schema:
+          type: object
+          properties:
+            order_id: {type: integer}
+            token: {type: string}
+            url: {type: string, example: "https://webpay3gint.transbank.cl/webpayserver/initTransaction"}
+            amount: {type: integer}
+      400:
+        description: Datos del pedido inválidos
+        schema: {$ref: '#/definitions/Error'}
+      401:
+        description: No autenticado
+        schema: {$ref: '#/definitions/Error'}
+      404:
+        description: Producto inexistente
+        schema: {$ref: '#/definitions/Error'}
+      409:
+        description: Stock insuficiente
+        schema: {$ref: '#/definitions/Error'}
+      502:
+        description: Webpay no respondió correctamente
+        schema: {$ref: '#/definitions/Error'}
+    """
+    data = request.get_json(silent=True) or {}
     try:
-        # Transbank no acepta URLs con "#" (Hash Routing), así que lo mandamos a nuestro Backend primero
-        return_url = "http://localhost:5000/api/payments/webpay/return"
-        tx = get_tx()
-        response = tx.create(
-            buy_order=str(result["buy_order"]),
-            session_id=str(result["session_id"]),
-            amount=int(result["amount"]), # type: ignore
-            return_url=return_url
+        result = PaymentService.start_webpay(
+            g.user_id,
+            data.get("items"),
+            data.get("shipping"),
+            return_url=url_for("payments.webpay_return", _external=True),
         )
-        return jsonify({"url": response["url"], "token": response["token"]})
-    except Exception as e:
-        return jsonify({"error": f"Error conectando con Transbank: {str(e)}"}), 500
+    except OrderValidationError as e:
+        return jsonify({"error": e.message}), e.status_code
+    except PaymentGatewayError as e:
+        return jsonify({"error": str(e)}), 502
+    return jsonify(result), 201
+
 
 @payments_bp.route("/api/payments/webpay/return", methods=["GET", "POST"])
-def return_webpay():
-    # Transbank puede responder con GET o POST dependiendo de si el pago se aprobó o canceló
-    token_ws = request.args.get("token_ws") or request.form.get("token_ws")
-    tbk_token = request.args.get("TBK_TOKEN") or request.form.get("TBK_TOKEN")
-    
-    if token_ws:
-        return redirect(f"http://localhost:5173/#/webpay-return?token_ws={token_ws}")
-    elif tbk_token:
-        return redirect(f"http://localhost:5173/#/webpay-return?TBK_TOKEN={tbk_token}")
-    else:
-        return redirect("http://localhost:5173/#/checkout")
-
-@payments_bp.route("/api/payments/webpay/commit", methods=["POST"])
-def commit_webpay():
-    data = request.get_json()
-    token_ws = data.get("token_ws")
-    
-    if not token_ws:
-        return jsonify({"error": "No se recibió token"}), 400
-
-    result = PaymentService.commit_webpay(token_ws)
-    return jsonify(result)
-
-@payments_bp.route("/api/payments/mock", methods=["POST"])
-def mock_payment():
-    # Para transferencia o mercadopago
-    user_id = session.get("user_id")
-    data = request.get_json()
-    order_id = data.get("order_id")
-    method = data.get("method")
-    
-    result = PaymentService.process_mock_payment(order_id, user_id, method)
-    if not result["success"]:
-        return jsonify({"error": result["error"]}), 400
-    return jsonify(result)
+def webpay_return():
+    """URL de retorno de Webpay Plus (la llama Transbank, no el frontend)
+    ---
+    tags: [Pagos]
+    description: |
+      Webpay redirige aquí al usuario al terminar. Según los parámetros recibidos:
+      - solo `token_ws`: se confirma (commit) la transacción → pedido `paid` o `rejected`.
+      - `TBK_TOKEN`: el usuario anuló el pago → pedido `cancelled`.
+      - solo `TBK_ORDEN_COMPRA` / `TBK_ID_SESION`: se agotó el tiempo → pedido `cancelled`.
+      Luego redirige al frontend en `/#/checkout/result?order=<id>`.
+    parameters:
+      - {in: query, name: token_ws, type: string}
+      - {in: query, name: TBK_TOKEN, type: string}
+      - {in: query, name: TBK_ORDEN_COMPRA, type: string}
+      - {in: query, name: TBK_ID_SESION, type: string}
+    responses:
+      302:
+        description: Redirección a la página de resultado del frontend
+    """
+    order_id = PaymentService.handle_webpay_return(
+        token_ws=request.values.get("token_ws"),
+        tbk_token=request.values.get("TBK_TOKEN"),
+        buy_order=request.values.get("TBK_ORDEN_COMPRA"),
+    )
+    return _result_redirect(order_id)

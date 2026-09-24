@@ -16,13 +16,10 @@ class User(db.Model):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def to_dict(self, include_password=False):
-        data = {
+    def to_dict(self):
+        return {
             "id": self.id,
             "name": self.name,
             "email": self.email,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
-        if include_password:
-            data["password_hash"] = self.password_hash
-        return data

@@ -3,9 +3,16 @@ import { store, refreshApp } from "../main.js";
 import { navigate } from "../router.js";
 import { showToast } from "../components/cart.js";
 
+// Permite volver a la página que pidió el login, p. ej. /login?next=/checkout
+function nextRoute() {
+    const query = window.location.hash.split("?")[1] || "";
+    const next = new URLSearchParams(query).get("next");
+    return next && next.startsWith("/") ? next : "/account";
+}
+
 export async function renderLogin(container) {
     if (store.user) {
-        navigate("/account");
+        navigate(nextRoute());
         return;
     }
 
@@ -124,7 +131,7 @@ export async function renderLogin(container) {
                 store.user = user;
                 showToast(`¡Bienvenido de vuelta, ${user.name}! (Demo)`);
                 refreshApp();
-                navigate("/account");
+                navigate(nextRoute());
             } catch (err) {
                 isLoading = false;
                 error = "Error al iniciar con cuenta demo: " + err.message;
@@ -163,7 +170,7 @@ export async function renderLogin(container) {
                     store.user = user;
                     showToast(`¡Cuenta creada con éxito! Bienvenido, ${user.name}!`);
                     refreshApp();
-                    navigate("/account");
+                    navigate(nextRoute());
                 } catch (err) {
                     isLoading = false;
                     error = err.message || "Error al crear la cuenta";
@@ -178,7 +185,7 @@ export async function renderLogin(container) {
                     store.user = user;
                     showToast(`¡Bienvenido de vuelta, ${user.name}!`);
                     refreshApp();
-                    navigate("/account");
+                    navigate(nextRoute());
                 } catch (err) {
                     isLoading = false;
                     error = err.message || "Credenciales incorrectas";

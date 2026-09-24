@@ -1,0 +1,20 @@
+# Blueprint de Render: https://render.com/docs/blueprint-spec
+# El despliegue lo dispara GitHub Actions (Deploy Hook) solo cuando los tests pasan.
+services:
+  - type: web
+    name: click-and-buy
+    runtime: docker
+    plan: free
+    rootDir: ecommerce-click-and-buy
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: TBK_ENV
+        value: integration
+      # FRONTEND_URL no es necesario: se usa RENDER_EXTERNAL_URL, que Render define solo

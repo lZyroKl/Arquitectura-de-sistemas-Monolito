@@ -1,0 +1,15 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/*.db
+**/.pytest_cache
+**/.coverage
+**/coverage.xml
+**/htmlcov
+frontend/dist
+backend/frontend_dist
+backend/tests
+backend/sneaks_data_verified.json
+sneaks-fetcher
+.env
