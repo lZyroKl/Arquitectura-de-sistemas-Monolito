@@ -2,15 +2,11 @@ import os
 
 from flasgger import Swagger
 from flask import Flask, abort, jsonify, send_from_directory
-from flask_cors import CORS
+from flask_cors import CORS  # type: ignore
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-import database
 from config import Config
-from routes.auth import auth_bp
-from routes.orders import orders_bp
-from routes.payments import payments_bp
-from routes.products import products_bp
+from database import db, init_db
 from swagger import SWAGGER_CONFIG, SWAGGER_TEMPLATE
 
 
@@ -24,8 +20,16 @@ def create_app(config_overrides=None):
     # para que la URL de retorno de Webpay se genere con https
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+    db.init_app(app)
     CORS(app, supports_credentials=True, origins=app.config["CORS_ORIGINS"])
     Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
+
+    # Los modelos se importan antes de crear las tablas
+    import models  # noqa: F401
+    from routes.products import products_bp
+    from routes.auth import auth_bp
+    from routes.orders import orders_bp
+    from routes.payments import payments_bp
 
     app.register_blueprint(products_bp)
     app.register_blueprint(auth_bp)
@@ -45,8 +49,9 @@ def create_app(config_overrides=None):
 
     register_frontend(app)
 
-    database.set_db_path(app.config["DB_PATH"])
-    database.init_db()
+    with app.app_context():
+        init_db()
+
     return app
 
 

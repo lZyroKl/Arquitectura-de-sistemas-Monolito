@@ -13,7 +13,7 @@ RUN npm run build
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DB_PATH=/data/store.db \
+    DATABASE_URL=sqlite:////data/store.db \
     FRONTEND_DIST=/app/frontend_dist \
     PORT=5000
 WORKDIR /app

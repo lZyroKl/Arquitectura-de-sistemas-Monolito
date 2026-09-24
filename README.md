@@ -20,7 +20,7 @@ En producción ambos se empaquetan en **una sola imagen Docker**: Flask sirve la
 | Capa | Tecnología |
 |---|---|
 | Frontend | Vite 6 + JavaScript vanilla |
-| Backend | Python 3.12, Flask, Gunicorn |
+| Backend | Python 3.12, Flask, Flask-SQLAlchemy (ORM), Gunicorn |
 | Base de datos | SQLite (SQL) |
 | API | REST + Swagger (Flasgger) en `/apidocs` |
 | Pagos | Webpay Plus (`transbank-sdk`, ambiente de integración) |
@@ -34,10 +34,10 @@ En producción ambos se empaquetan en **una sola imagen Docker**: Flask sirve la
 backend/
 ├── app.py              # create_app(): configura Flask, CORS, Swagger y blueprints
 ├── config.py           # configuración por variables de entorno
-├── database.py         # conexión SQLite, esquema y migraciones
-├── models/             # acceso a datos (SQL)
-├── services/           # reglas de negocio: cálculo de pedido y cliente Webpay
-├── routes/             # endpoints REST (products, auth, orders, payments)
+├── database.py         # instancia de SQLAlchemy y creación/migración de tablas
+├── models/             # modelos ORM: User, Product, Order, OrderItem, Payment
+├── services/           # reglas de negocio: productos, usuarios, pedidos y pagos Webpay
+├── routes/             # endpoints REST delgados (products, auth, orders, payments)
 ├── swagger.py          # definiciones OpenAPI
 ├── seed.py             # carga el catálogo y la cuenta demo
 └── tests/              # pytest
@@ -160,10 +160,12 @@ Desde ese momento, cada push a `main` con tests verdes se despliega solo.
 
 ## Variables de entorno
 
+En desarrollo puedes copiar `backend/.env.example` como `backend/.env`.
+
 | Variable | Por defecto | Uso |
 |---|---|---|
 | `SECRET_KEY` | `dev-secret-change-me` | Firma de la cookie de sesión. **Cámbiala en producción.** |
-| `DB_PATH` | `backend/store.db` | Ruta del archivo SQLite |
+| `DATABASE_URL` | `sqlite:///backend/store.db` | URL de conexión de SQLAlchemy |
 | `FRONTEND_URL` | `RENDER_EXTERNAL_URL` o `http://localhost:5173` | A dónde vuelve el usuario después de Webpay; también se usa para CORS |
 | `CORS_ORIGINS` | `FRONTEND_URL` | Orígenes permitidos, separados por coma |
 | `COOKIE_SECURE` | `false` | `true` en producción con HTTPS |
@@ -179,5 +181,5 @@ cd ecommerce-click-and-buy/sneaks-fetcher
 npm install
 npm run fetch
 cd ../backend
-python seed.py --force   # recarga el catálogo (borra los pedidos existentes)
+python seed.py --force   # recrea la base desde cero (borra usuarios y pedidos)
 ```

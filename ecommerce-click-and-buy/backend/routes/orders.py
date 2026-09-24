@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, g
-from models.order import get_orders_by_user, get_order_by_id
+from services.order_service import OrderService
 from routes.decorators import login_required
 
 orders_bp = Blueprint("orders", __name__)
@@ -24,7 +24,7 @@ def list_orders():
         description: No autenticado
         schema: {$ref: '#/definitions/Error'}
     """
-    return jsonify(get_orders_by_user(g.user_id))
+    return jsonify(OrderService.get_orders_by_user(g.user_id))
 
 
 @orders_bp.route("/api/orders/<int:order_id>", methods=["GET"])
@@ -49,7 +49,7 @@ def get_order(order_id):
         description: Pedido no encontrado
         schema: {$ref: '#/definitions/Error'}
     """
-    order = get_order_by_id(order_id)
-    if not order or order["user_id"] != g.user_id:
+    order = OrderService.get_order_for_user(order_id, g.user_id)
+    if not order:
         return jsonify({"error": "Pedido no encontrado"}), 404
     return jsonify(order)

@@ -1,7 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models.product import (
-    get_all_products, get_product_by_id, get_product_variants, get_brands, get_categories
-)
+from services.product_service import ProductService
 
 products_bp = Blueprint("products", __name__)
 
@@ -28,7 +26,7 @@ def list_products():
         schema: {$ref: '#/definitions/Error'}
     """
     try:
-        products = get_all_products(
+        products = ProductService.get_all_products(
             request.args.get("brand"),
             request.args.get("category"),
             request.args.get("min_price"),
@@ -55,7 +53,7 @@ def get_product(product_id):
         description: Producto no encontrado
         schema: {$ref: '#/definitions/Error'}
     """
-    product = get_product_by_id(product_id)
+    product = ProductService.get_product_by_id(product_id)
     if product:
         return jsonify(product)
     return jsonify({"error": "Producto no encontrado"}), 404
@@ -78,7 +76,7 @@ def get_variants(product_id):
         description: Variantes no encontradas
         schema: {$ref: '#/definitions/Error'}
     """
-    variants = get_product_variants(product_id)
+    variants = ProductService.get_product_variants(product_id)
     if variants:
         return jsonify(variants)
     return jsonify({"error": "Variantes no encontradas"}), 404
@@ -94,7 +92,7 @@ def list_brands():
         description: Marcas
         schema: {type: array, items: {type: string}}
     """
-    return jsonify(get_brands())
+    return jsonify(ProductService.get_brands())
 
 
 @products_bp.route("/api/products/categories", methods=["GET"])
@@ -107,4 +105,4 @@ def list_categories():
         description: Categorías
         schema: {type: array, items: {type: string}}
     """
-    return jsonify(get_categories())
+    return jsonify(ProductService.get_categories())

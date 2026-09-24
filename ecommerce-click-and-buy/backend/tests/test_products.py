@@ -61,16 +61,21 @@ def test_health_and_swagger(client):
 
 def test_serves_frontend_build_when_present(tmp_path):
     from app import create_app
+    from database import db
 
     dist = tmp_path / "dist"
     (dist / "assets").mkdir(parents=True)
     (dist / "index.html").write_text("<html>click&buy</html>")
     (dist / "assets" / "app.js").write_text("console.log(1)")
 
-    client = create_app({"DB_PATH": str(tmp_path / "db.sqlite"), "FRONTEND_DIST": str(dist)}).test_client()
+    app = create_app({"SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path / 'db.sqlite'}", "FRONTEND_DIST": str(dist)})
+    client = app.test_client()
     assert b"click&buy" in client.get("/").data
     assert client.get("/assets/app.js").data == b"console.log(1)"
     assert b"click&buy" in client.get("/cualquier/ruta").data
     assert client.get("/api/no-existe").status_code == 404
     assert client.get("/api/health").status_code == 200
     assert client.get("/apidocs/").status_code == 200
+
+    with app.app_context():
+        db.engine.dispose()

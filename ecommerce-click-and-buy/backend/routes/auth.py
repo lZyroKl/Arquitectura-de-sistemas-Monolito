@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session, g
-from models.user import create_user, authenticate_user, get_user_by_id
+from services.user_service import UserService
 from routes.decorators import login_required
 
 auth_bp = Blueprint("auth", __name__)
@@ -36,7 +36,7 @@ def register():
     if not data or not all(str(data.get(k, "")).strip() for k in ("name", "email", "password")):
         return jsonify({"error": "Faltan campos requeridos"}), 400
 
-    user = create_user(data["name"].strip(), data["email"].strip().lower(), data["password"])
+    user = UserService.create_user(data["name"], data["email"], data["password"])
     if not user:
         return jsonify({"error": "El email ya está registrado"}), 409
 
@@ -74,7 +74,7 @@ def login():
     if not data or not all(k in data for k in ("email", "password")):
         return jsonify({"error": "Faltan campos requeridos"}), 400
 
-    user = authenticate_user(data["email"].strip().lower(), data["password"])
+    user = UserService.authenticate_user(data["email"], data["password"])
     if not user:
         return jsonify({"error": "Credenciales inválidas"}), 401
 
@@ -99,7 +99,7 @@ def me():
         description: Usuario no encontrado
         schema: {$ref: '#/definitions/Error'}
     """
-    user = get_user_by_id(g.user_id)
+    user = UserService.get_user_by_id(g.user_id)
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
     return jsonify(user)

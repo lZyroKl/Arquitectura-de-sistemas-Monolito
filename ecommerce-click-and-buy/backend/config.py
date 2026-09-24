@@ -1,6 +1,11 @@
 import os
 
+from dotenv import load_dotenv
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Permite definir las variables en backend/.env durante el desarrollo
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 def _env_bool(name, default=False):
@@ -9,7 +14,11 @@ def _env_bool(name, default=False):
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-    DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "store.db"))
+
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "DATABASE_URL", "sqlite:///" + os.path.join(BASE_DIR, "store.db")
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Build de Vite que Flask sirve en producción (en desarrollo se usa `npm run dev`)
     FRONTEND_DIST = os.environ.get("FRONTEND_DIST", os.path.join(BASE_DIR, "frontend_dist"))
@@ -27,8 +36,7 @@ class Config:
         if origin.strip()
     ]
 
-    # En producción el frontend y el backend viven en dominios distintos,
-    # por lo que la cookie de sesión necesita SameSite=None; Secure
+    # En producción la cookie de sesión debe viajar solo por HTTPS
     SESSION_COOKIE_SECURE = _env_bool("COOKIE_SECURE")
     SESSION_COOKIE_SAMESITE = "None" if SESSION_COOKIE_SECURE else "Lax"
 

@@ -1,15 +1,27 @@
 import pytest
 from transbank.error.transbank_error import TransbankError
 
-from database import get_connection
+from database import db
+from models.payment import Payment
+from models.product import Product
 from tests.conftest import SHIPPING
+
+_current = {}
+
+
+@pytest.fixture(autouse=True)
+def _remember_app(app):
+    _current["app"] = app
 
 
 def stock_of(product_id):
-    conn = get_connection()
-    stock = conn.execute("SELECT stock FROM products WHERE id = ?", (product_id,)).fetchone()[0]
-    conn.close()
-    return stock
+    with _current["app"].app_context():
+        return db.session.get(Product, product_id).stock
+
+
+def payment_of(order_id):
+    with _current["app"].app_context():
+        return Payment.query.filter_by(order_id=order_id).first().to_dict()
 
 
 def start_payment(client, items=None, shipping=SHIPPING):
@@ -103,7 +115,12 @@ def test_return_approved_marks_paid_and_discounts_stock(auth_client, fake_webpay
     assert order["status"] == "paid"
     assert order["authorization_code"] == "1213"
     assert order["card_last4"] == "6623"
+    assert order["payment_method"] == "webpay"
+    assert order["paid_at"] is not None
     assert stock_of(1) == 3
+    payment = payment_of(body["order_id"])
+    assert payment["status"] == "approved"
+    assert "token" not in payment
 
 
 def test_return_is_idempotent(auth_client, fake_webpay):
@@ -121,6 +138,7 @@ def test_return_rejected_by_bank(auth_client, fake_webpay):
     auth_client.get(f"/api/payments/webpay/return?token_ws={body['token']}")
 
     assert auth_client.get(f"/api/orders/{body['order_id']}").get_json()["status"] == "rejected"
+    assert payment_of(body["order_id"])["status"] == "rejected"
     assert stock_of(1) == 5
 
 

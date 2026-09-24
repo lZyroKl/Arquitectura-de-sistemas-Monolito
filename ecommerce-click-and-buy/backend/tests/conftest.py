@@ -1,6 +1,7 @@
 import pytest
 
 from app import create_app
+from database import db
 from seed import seed_products
 
 SAMPLE_PRODUCTS = [
@@ -38,12 +39,16 @@ SHIPPING = {
 def app(tmp_path):
     app = create_app({
         "TESTING": True,
-        "DB_PATH": str(tmp_path / "test.db"),
+        "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path / 'test.db'}",
         "SECRET_KEY": "test",
         "FRONTEND_URL": "http://frontend.test",
     })
-    seed_products(SAMPLE_PRODUCTS)
-    return app
+    with app.app_context():
+        seed_products(SAMPLE_PRODUCTS)
+    yield app
+    with app.app_context():
+        db.session.remove()
+        db.engine.dispose()
 
 
 @pytest.fixture

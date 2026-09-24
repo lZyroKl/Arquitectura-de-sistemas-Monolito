@@ -125,7 +125,7 @@ export async function renderCheckout(container) {
                                 <div class="step-badge">2</div>
                                 <div>
                                     <h3 class="checkout-step-title">Método de Pago Seguro</h3>
-                                    <p class="checkout-step-desc">Transacciones encriptadas y 100% protegidas</p>
+                                    <p class="checkout-step-desc">Transacciones encriptadas y 100% protegidas por Transbank</p>
                                 </div>
                             </div>
 
@@ -137,9 +137,14 @@ export async function renderCheckout(container) {
                                             <span class="payment-option-title">Webpay Plus / Tarjetas</span>
                                             <span class="badge badge-red">Transbank</span>
                                         </div>
-                                        <p class="payment-option-desc">Tarjetas de Débito (Redcompra), Crédito (Visa, Mastercard, AMEX) y Prepago. Serás redirigido a Webpay para completar el pago de forma segura.</p>
+                                        <p class="payment-option-desc">Tarjetas de Débito (Redcompra), Crédito (Visa, Mastercard, AMEX) y Prepago.</p>
                                     </div>
                                 </label>
+                            </div>
+
+                            <div style="background:var(--bg-secondary);padding:20px;border-radius:12px;margin-top:16px;text-align:center;border:1px solid rgba(235, 17, 43, 0.2);">
+                                <img src="https://public.transbank.cl/public/img/webpayPlus.png" alt="Webpay Plus" style="height:40px;margin-bottom:12px;" onerror="this.style.display='none'" />
+                                <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;">Serás redirigido al entorno <strong>seguro y oficial de Transbank (Webpay)</strong> para ingresar los datos de tu tarjeta.</p>
                             </div>
                         </div>
                     </form>
